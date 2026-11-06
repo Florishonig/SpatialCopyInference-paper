@@ -1,6 +1,6 @@
 # SpatialCopyInference-paper
 
-This repository hosts the companion [website](https://florishonig.github.io/SpatialCopyInference-paper/) for the SpatialCopyInference preprint:
+This repository hosts the companion [website](https://florishonig.github.io/SpatialCopyInference-paper/) for the SpatialCopyInference preprint and provides the analyses underlying the study:
 
 **Inferring somatic copy number aberrations from spatial transcriptomics data to study early cancer development**
 
