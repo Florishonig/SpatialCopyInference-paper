@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Cell type means</title>
+
+<script src="site_libs/header-attrs-2.32/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SpatialCopyInference-paper</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Analyses
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="TCGA.html">TCGA</a>
+    </li>
+    <li>
+      <a href="Cell_annotation_refinement.html">Cell annotation refinement</a>
+    </li>
+    <li>
+      <a href="Cell_type_means.html">Cell type means</a>
+    </li>
+    <li>
+      <a href="Clustering_parameter_optimisation.html">Cluster parameter optimisation</a>
+    </li>
+    <li>
+      <a href="Normal_region_analyses.html">Normal region analyses</a>
+    </li>
+    <li>
+      <a href="Normal_region_only_clustering.html">Normal region only clustering</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Cell type means</h1>
+
+</div>
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>This vignette demonstrates how chromosome arm mean expression
+profiles can be summarised across annotated cell populations. In this
+ovarian cancer dataset, epithelial and tumour-associated populations
+exhibit distinct chromosome arm level expression patterns compared with
+other cell types, highlighting the importance of reference selection for
+SCNA inference.</p>
+</div>
+<div id="load-libraries" class="section level2">
+<h2>Load libraries</h2>
+<pre class="r"><code># Load libraries
+library(dplyr)
+library(ggplot2)
+library(SpatialCopyInference)
+library(purrr)</code></pre>
+</div>
+<div id="set-plot-settings" class="section level2">
+<h2>Set plot settings</h2>
+<pre class="r"><code># Set manual colours from palette
+manual_col &lt;- c(&quot;Proliferative Tumour Cells&quot; = &quot;#F1CE63&quot;,
+                &quot;MT-High, Jun+/Fos+ Tumour Cells&quot; = &quot;#86BCB6&quot;,
+                &quot;VEGFA+ Tumour Cells&quot; = &quot;#FABFD2&quot;,
+                &quot;Tumour Cells&quot; = &quot;#D37295&quot;,
+                &quot;Fallopian Tube Epithelium&quot; = &quot;#59A14F&quot;,
+                &quot;Macrophages&quot; = &quot;#8CD17D&quot;,
+                &quot;Tumour Associated Ciliated Epithelial Cells&quot; = &quot;#A0CBE8&quot;,
+                &quot;Ciliated Epithelial Cells&quot; = &quot;#4E79A7&quot;,
+                &quot;T &amp; NK Cells&quot; = &quot;#79706E&quot;,
+                &quot;Tumour Associated Fibroblasts&quot; = &quot;#BAB0AC&quot;,
+                &quot;Malignant Cells Lining Cyst&quot; = &quot;#B6992D&quot;,
+                &quot;Endothelial Cells&quot; = &quot;#D7B5A6&quot;,
+                &quot;Stromal Associated Fibroblasts&quot; = &quot;#FF9D9A&quot;,
+                &quot;Pericytes&quot; = &quot;#499894&quot;,
+                &quot;Smooth Muscle Cells&quot; = &quot;#E15759&quot;,
+                &quot;Inflammatory Tumour Cells&quot; = &quot;#B07AA1&quot;,
+                &quot;Granulosa Cells&quot; = &quot;#FFBE7D&quot;,
+                &quot;Secretory Epithelial Cells&quot; = &quot;#F28E2B&quot;)
+
+# Add legend order
+legend_order &lt;- c(&quot;Tumour Cells&quot;, &quot;Inflammatory Tumour Cells&quot;, &quot;Proliferative Tumour Cells&quot;, &quot;VEGFA+ Tumour Cells&quot;, &quot;MT-High, Jun+/Fos+ Tumour Cells&quot;, &quot;Malignant Cells Lining Cyst&quot;, &quot;Tumour Associated Fibroblasts&quot;, &quot;Tumour Associated Ciliated Epithelial Cells&quot;, &quot;Fallopian Tube Epithelium&quot;, &quot;Secretory Epithelial Cells&quot;, &quot;Ciliated Epithelial Cells&quot;, &quot;Granulosa Cells&quot;,&quot;Endothelial Cells&quot;, &quot;Pericytes&quot;, &quot;Stromal Associated Fibroblasts&quot;, &quot;Smooth Muscle Cells&quot;, &quot;Macrophages&quot;, &quot;T &amp; NK Cells&quot;)</code></pre>
+</div>
+<div id="import-data" class="section level2">
+<h2>Import data</h2>
+<pre class="r"><code># Path to Xenium output directory
+data_dir &lt;- &quot;path/to/Xenium_outputs/outs&quot;
+
+# Path to refined cell type annotations
+annotation_file &lt;- &quot;path/to/cell_type_annotations.csv&quot;</code></pre>
+</div>
+<div id="run-pipeline" class="section level2">
+<h2>Run pipeline</h2>
+<pre class="r"><code># Import data
+xenium.obj &lt;- import_xenium(data_dir, annotation_file)
+
+# Quality control
+xenium.obj &lt;- filter_cells(xenium.obj)
+xenium.obj &lt;- filter_genes(xenium.obj, min_cells = 50, min_counts = 50)
+
+# Normalisation
+xenium.obj &lt;- normalise_data(xenium.obj)</code></pre>
+</div>
+<div id="comparison-of-cell-means" class="section level2">
+<h2>Comparison of cell means</h2>
+<p>Chromosome arm mean profiles were computed separately for each
+annotated cell population using <code>compute_reference()</code>. The
+resulting chromosome arm level mean expression values can then be
+compared across cell types.</p>
+<pre class="r"><code># Compute references for each cell type
+all_group_refs &lt;- purrr::map_dfr(
+  unique(xenium.obj$group),
+  function(g) {
+    compute_reference(
+      xenium.obj,
+      group_var= &quot;group&quot;,
+      group_names = g
+    ) %&gt;%
+      mutate(group = g)
+  }
+)</code></pre>
+<p>Chromosome arm means for each cell type are shown below.</p>
+<pre class="r"><code># Supplementary Figure 1: Mean chromosome arm-level gene expression across different cell types.
+ggplot() +
+  geom_vline(xintercept=hg38_chrom_info$cum_centromere_mid, linetype =  &quot;dashed&quot;,linewidth = .3) +
+  geom_vline(xintercept=hg38_chrom_info$cum_length,linewidth = .3) +
+  geom_segment(
+    data = all_group_refs %&gt;% filter(arm == &quot;p&quot;),
+    aes(x = p_start, xend = p_end, y = mean_arm_expr, 
+        colour = group),
+    linewidth = .8, linetype = &quot;11&quot;) +
+  geom_segment(data = all_group_refs %&gt;% filter(arm == &quot;q&quot;),
+    aes(x = q_start, xend = q_end, y = mean_arm_expr, 
+        colour = group),
+    linewidth = .8, linetype = &quot;11&quot;) +
+  scale_colour_manual(
+    values = c(manual_col, &quot;Global mean&quot; = &quot;black&quot;), breaks = legend_order) +
+    scale_x_continuous(breaks =hg38_chrom_info$cum_chromosome_mid , labels = hg38_chrom_info$chrom, expand = c(0,0)) +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour=&quot;black&quot;, size=8)) +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
+  theme(axis.text.y=element_text(colour=&quot;black&quot;, size=9)) +
+  theme(axis.title.x=element_text(colour=&quot;black&quot;, size=8)) +
+  theme(axis.title.y=element_text(colour=&quot;black&quot;, size=8)) +
+  theme(legend.text=element_text(colour=&quot;black&quot;, size=8)) +
+  ylim(0,1) +
+  theme(legend.position=&quot;right&quot;) +
+  theme(legend.title = element_blank())+
+  ylab(&quot;Log-normalised expression&quot;) +
+  xlab(&quot;Chromosome&quot;) +
+  ggtitle(&quot;Cell type arm means&quot;)</code></pre>
+<p><img src="Cell_type_means_files/figure-html/Plot%20all%20chromosome%20means-1.png" alt="" width="100%" /></p>
+<p>To facilitate visual comparison, four representative cell populations
+are shown across chromosomes 1–4 below.</p>
+<pre class="r"><code>hg38_chrom_info_sub &lt;- hg38_chrom_info %&gt;%  filter(chrom %in% paste0(&quot;chr&quot;, 1:4))
+
+groups_to_plot &lt;- c(&quot;Fallopian Tube Epithelium&quot;, &quot;Endothelial Cells&quot;, &quot;Proliferative Tumour Cells&quot;, &quot;Tumour Cells&quot; )
+arm_means_sub &lt;- all_group_refs %&gt;%  filter(chrom %in% paste0(&quot;chr&quot;, 1:4), group %in% groups_to_plot)
+
+# Fig 1B: Mean log-normalised chromosome arm-level gene expression across representative cell populations
+ggplot() +
+  geom_vline(xintercept=hg38_chrom_info_sub$cum_centromere_mid, linetype =  &quot;dashed&quot;,linewidth = .3) +
+  geom_vline(xintercept=hg38_chrom_info_sub$cum_length,linewidth = .3) +
+  geom_segment(
+    data = arm_means_sub %&gt;% filter(arm == &quot;p&quot;),
+    aes(x = p_start, xend = p_end, y = mean_arm_expr, 
+        colour = group),
+    linewidth = .6, linetype = &quot;11&quot;) +
+  geom_segment(data = arm_means_sub %&gt;% filter(arm == &quot;q&quot;),
+               aes(x = q_start, xend = q_end, y = mean_arm_expr, 
+                   colour = group),
+               linewidth = .6, linetype = &quot;11&quot;) +
+  scale_colour_manual(values = c(manual_col), breaks = legend_order) +
+  scale_x_continuous(breaks =hg38_chrom_info_sub$cum_chromosome_mid , labels =   hg38_chrom_info_sub$chrom, expand = c(0,0)) +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour=&quot;black&quot;, size=9)) +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
+  theme(axis.text.y=element_text(colour=&quot;black&quot;, size=9)) +
+  theme(axis.title.x=element_blank()) +
+  theme(axis.title.y=element_text(colour=&quot;black&quot;, size=10)) +
+  theme(legend.text=element_text(colour=&quot;black&quot;, size=6)) +
+  ylim(0,1) +
+  theme(legend.position=&quot;bottom&quot;) +
+  theme(legend.title = element_blank())+
+  ylab(&quot;Log-normalised expression&quot;)</code></pre>
+<p><img src="Cell_type_means_files/figure-html/Plot%20representative%20means-1.png" alt="" width="100%" /></p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

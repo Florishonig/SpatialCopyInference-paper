@@ -1,0 +1,3626 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<title>Cell annotation refinement</title>
+
+<script src="site_libs/header-attrs-2.32/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+<link rel="stylesheet" href="styles.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">SpatialCopyInference-paper</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Analyses
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="TCGA.html">TCGA</a>
+    </li>
+    <li>
+      <a href="Cell_annotation_refinement.html">Cell annotation refinement</a>
+    </li>
+    <li>
+      <a href="Cell_type_means.html">Cell type means</a>
+    </li>
+    <li>
+      <a href="Clustering_parameter_optimisation.html">Cluster parameter optimisation</a>
+    </li>
+    <li>
+      <a href="Normal_region_analyses.html">Normal region analyses</a>
+    </li>
+    <li>
+      <a href="Normal_region_only_clustering.html">Normal region only clustering</a>
+    </li>
+  </ul>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Cell annotation refinement</h1>
+
+</div>
+
+
+<div id="cell-annotation-refinement" class="section level2">
+<h2>Cell annotation refinement</h2>
+<p>Here, the cell type annotations generated using the 10x Genomics
+label transfer workflow were further refined (<a
+href="https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation"
+class="uri">https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation</a>).</p>
+<p>In particular, the Ciliated Epithelial Cells population was
+re-evaluated because a substantial proportion of these cells were
+located outside the histologically normal fallopian tube epithelium.</p>
+<p>In addition, Secretory Epithelial Cells were identified within the
+Fallopian Tube Epithelium population and annotated as a separate cell
+type.</p>
+</div>
+<div id="load-libraries" class="section level2">
+<h2>Load libraries</h2>
+<pre class="r"><code># load libraries
+library(Seurat)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(enrichR)
+library(kableExtra)
+library(stringr)</code></pre>
+</div>
+<div id="import-data" class="section level2">
+<h2>Import data</h2>
+<p>Here, the Xenium object resulting from the “Annotating Cell Types in
+Xenium In Situ Data with Label Transfer” pipeline is imported (<a
+href="https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation"
+class="uri">https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation</a>).</p>
+<pre class="r"><code># Import Xenium annotated data
+xenium.obj &lt;- readRDS(&quot;Data/xenium.obj_annotated_scores.rds&quot;)
+
+# palettes
+custom_hex &lt;- c(&quot;#3375AB&quot;, &quot;#FFFF00&quot;, &quot;#E8280E&quot;, &quot;#8D1909&quot;, &quot;#E47E11&quot;,&quot;#FF75A0&quot;, &quot;#19297C&quot;, &quot;#AC674E&quot;, &quot;#805D93&quot;, &quot;#13B0F7&quot;, &quot;#8980F5&quot;, &quot;#595959&quot;, &quot;#0BFFFF&quot;, &quot;#169873&quot;, &quot;#8EE525&quot;, &quot;#169873&quot;, &quot;#52E097&quot;, &quot;#8980F5&quot;, &quot;#EE00B0&quot;)
+
+names(custom_hex) &lt;- c(&quot;Tumor Associated Fibroblasts&quot;, &quot;Malignant Cells Lining Cyst&quot;, &quot;Tumor Cells&quot;, &quot;Inflammatory Tumor Cells&quot;, &quot;Proliferative Tumor Cells&quot;, &quot;VEGFA+ Tumor Cells&quot;, &quot;Stromal Associated Fibroblasts&quot;, &quot;Endothelial Cells&quot;, &quot;Stromal Associated Macrophages&quot;, &quot;Smooth Muscle Cells&quot;, &quot;Tumor Associated Macrophages&quot;, &quot;T &amp; NK Cells&quot;, &quot;Pericytes&quot;, &quot;Granulosa and FT Epithelial Cells&quot;, &quot;Ciliated Epithelial Cells&quot;, &quot;Granulosa Cells&quot;, &quot;Fallopian Tube Epithelium&quot;, &quot;Macrophages&quot;, &quot;MT-High, Jun+/Fos+ Tumor Cells&quot;)</code></pre>
+</div>
+<div id="top-markers" class="section level2 tabset">
+<h2 class="tabset">Top markers</h2>
+<p>Show top 15 markers for each annotated cell type.</p>
+<pre class="r"><code>markers_entire &lt;- FindAllMarkers(
+  xenium.obj,
+  only.pos = TRUE,
+  assay = &quot;Xenium&quot;,
+  group.by = &quot;cell_type&quot;,
+  slot = &quot;data&quot;,
+  test.use = &quot;wilcox&quot;
+)
+
+top15_markers &lt;- markers_entire %&gt;%
+  group_by(cluster) %&gt;%
+  slice_max(order_by = avg_log2FC, n = 15)
+
+cell_types &lt;- sort(unique(top15_markers$cluster))
+
+for (ct in cell_types) {
+
+  cat(&quot;### &quot;, ct, &quot;\n\n&quot;, sep = &quot;&quot;)
+
+  print(
+    kable(
+      top15_markers %&gt;%
+        filter(cluster == ct) %&gt;%
+        dplyr::select(
+          gene,
+          avg_log2FC,
+          p_val_adj
+        ),
+      digits = 3
+    )
+  )
+
+  cat(&quot;\n\n&quot;)
+}</code></pre>
+<div id="proliferative-tumor-cells" class="section level3">
+<h3>Proliferative Tumor Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">RAD54L</td>
+<td align="right">2.735</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">MYBL2</td>
+<td align="right">2.689</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">TYMS</td>
+<td align="right">2.523</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">BIRC5</td>
+<td align="right">2.468</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">FOXM1</td>
+<td align="right">2.440</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">TOP2A</td>
+<td align="right">2.439</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">CDK1</td>
+<td align="right">2.432</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">AURKB</td>
+<td align="right">2.420</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">MELK</td>
+<td align="right">2.416</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">KIF18B</td>
+<td align="right">2.351</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">PBK</td>
+<td align="right">2.329</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">BUB1</td>
+<td align="right">2.316</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">TPX2</td>
+<td align="right">2.298</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">ASPM</td>
+<td align="right">2.293</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Proliferative Tumor Cells</td>
+<td align="left">ASF1B</td>
+<td align="right">2.285</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="mt-high-junfos-tumor-cells" class="section level3">
+<h3>MT-High, Jun+/Fos+ Tumor Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">C2orf88</td>
+<td align="right">1.461</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">KIAA1324</td>
+<td align="right">1.446</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">UGT2B7</td>
+<td align="right">1.435</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">PART1</td>
+<td align="right">1.395</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">TUBB4A</td>
+<td align="right">1.355</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">DOK7</td>
+<td align="right">1.327</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">KCNK15</td>
+<td align="right">1.313</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">SOX9</td>
+<td align="right">1.287</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">PRNCR1</td>
+<td align="right">1.274</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">SMPDL3B</td>
+<td align="right">1.268</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">MSLN</td>
+<td align="right">1.265</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">POTEF</td>
+<td align="right">1.258</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">PPP1R1C</td>
+<td align="right">1.240</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">CRB2</td>
+<td align="right">1.229</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">MT-High, Jun+/Fos+ Tumor Cells</td>
+<td align="left">PCAT1</td>
+<td align="right">1.227</td>
+<td align="right">0.041</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="vegfa-tumor-cells" class="section level3">
+<h3>VEGFA+ Tumor Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">TOP2A</td>
+<td align="right">2.488</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">EREG</td>
+<td align="right">2.287</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">NMU</td>
+<td align="right">2.285</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">NEK2</td>
+<td align="right">2.251</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">BUB1</td>
+<td align="right">2.251</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">TPX2</td>
+<td align="right">2.218</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">UBE2C</td>
+<td align="right">2.214</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">CDC20</td>
+<td align="right">2.212</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">TFPI2</td>
+<td align="right">2.202</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">CENPF</td>
+<td align="right">2.198</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">CDCA2</td>
+<td align="right">2.198</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">CENPA</td>
+<td align="right">2.164</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">ASPM</td>
+<td align="right">2.148</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">TNFRSF11B</td>
+<td align="right">2.133</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">VEGFA+ Tumor Cells</td>
+<td align="left">SLC2A1</td>
+<td align="right">2.085</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tumor-cells" class="section level3">
+<h3>Tumor Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">PCP2</td>
+<td align="right">2.747</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">BMP6</td>
+<td align="right">2.321</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">MAPK15</td>
+<td align="right">2.224</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">KCNK15</td>
+<td align="right">2.223</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">CFAP47</td>
+<td align="right">2.180</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">FAM107A</td>
+<td align="right">2.088</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">KCNC3</td>
+<td align="right">2.029</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">DACH1</td>
+<td align="right">2.017</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">PKD1L1</td>
+<td align="right">1.993</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">PART1</td>
+<td align="right">1.966</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">APELA</td>
+<td align="right">1.954</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">EPOR</td>
+<td align="right">1.933</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">KIAA1324</td>
+<td align="right">1.880</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Cells</td>
+<td align="left">TNNT2</td>
+<td align="right">1.844</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Cells</td>
+<td align="left">CRB2</td>
+<td align="right">1.824</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="macrophages" class="section level3">
+<h3>Macrophages</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">MRC1</td>
+<td align="right">6.015</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">CD163</td>
+<td align="right">5.720</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">F13A1</td>
+<td align="right">5.663</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">CSF1R</td>
+<td align="right">5.427</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">STAB1</td>
+<td align="right">5.295</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">LILRB5</td>
+<td align="right">5.279</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">CYBB</td>
+<td align="right">5.184</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">CD14</td>
+<td align="right">5.142</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">SIGLEC1</td>
+<td align="right">5.075</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">FCGBP</td>
+<td align="right">5.062</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">C1QC</td>
+<td align="right">4.997</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">SLCO2B1</td>
+<td align="right">4.974</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">VSIG4</td>
+<td align="right">4.953</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Macrophages</td>
+<td align="left">LAIR1</td>
+<td align="right">4.949</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Macrophages</td>
+<td align="left">MS4A6A</td>
+<td align="right">4.888</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="ciliated-epithelial-cells" class="section level3">
+<h3>Ciliated Epithelial Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">C20orf85</td>
+<td align="right">8.123</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">CFAP100</td>
+<td align="right">6.677</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">CDHR4</td>
+<td align="right">6.670</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">FAM216B</td>
+<td align="right">6.605</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">TEKT1</td>
+<td align="right">6.501</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">LDLRAD1</td>
+<td align="right">6.454</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">FAM183A</td>
+<td align="right">6.392</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">ERICH3</td>
+<td align="right">6.161</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">DNAH11</td>
+<td align="right">6.016</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">TPPP3</td>
+<td align="right">5.815</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">IL5RA</td>
+<td align="right">5.704</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">DNAH10</td>
+<td align="right">5.682</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">CFAP47</td>
+<td align="right">5.629</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">SRD5A2</td>
+<td align="right">5.567</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ciliated Epithelial Cells</td>
+<td align="left">DNAI1</td>
+<td align="right">5.520</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="t-nk-cells" class="section level3">
+<h3>T &amp; NK Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD8A</td>
+<td align="right">7.463</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">TRBC1</td>
+<td align="right">7.438</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">TRAC</td>
+<td align="right">6.802</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD2</td>
+<td align="right">6.685</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD3E</td>
+<td align="right">6.474</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">GZMA</td>
+<td align="right">6.403</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD52</td>
+<td align="right">6.373</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD3D</td>
+<td align="right">6.131</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">IL7R</td>
+<td align="right">6.022</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">GZMH</td>
+<td align="right">5.898</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">SH2D1A</td>
+<td align="right">5.766</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">KLRK1</td>
+<td align="right">5.756</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">GPR174</td>
+<td align="right">5.649</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">GZMK</td>
+<td align="right">5.547</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">T &amp; NK Cells</td>
+<td align="left">CD96</td>
+<td align="right">5.486</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tumor-associated-fibroblasts" class="section level3">
+<h3>Tumor Associated Fibroblasts</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">COL11A1</td>
+<td align="right">5.985</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">COL10A1</td>
+<td align="right">5.630</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">INHBA</td>
+<td align="right">5.326</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">MMP11</td>
+<td align="right">5.226</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">CTHRC1</td>
+<td align="right">5.006</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">COMP</td>
+<td align="right">5.005</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">CDH11</td>
+<td align="right">4.744</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">ADAMTS14</td>
+<td align="right">4.568</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">SERPINE1</td>
+<td align="right">4.541</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">ADAM12</td>
+<td align="right">4.491</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">LOXL1</td>
+<td align="right">4.483</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">SCG2</td>
+<td align="right">4.385</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">COL5A2</td>
+<td align="right">4.350</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">FAP</td>
+<td align="right">4.291</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Tumor Associated Fibroblasts</td>
+<td align="left">LUM</td>
+<td align="right">4.181</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="malignant-cells-lining-cyst" class="section level3">
+<h3>Malignant Cells Lining Cyst</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">PRG4</td>
+<td align="right">8.054</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">CPA4</td>
+<td align="right">6.637</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">CALB2</td>
+<td align="right">6.429</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">BNC1</td>
+<td align="right">5.850</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">PAEP</td>
+<td align="right">4.941</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">ANXA8</td>
+<td align="right">4.922</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">RGS4</td>
+<td align="right">4.921</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">UPK3B</td>
+<td align="right">4.865</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">PROCR</td>
+<td align="right">4.718</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">LRP2</td>
+<td align="right">4.525</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">PTGER3</td>
+<td align="right">4.460</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">TGM1</td>
+<td align="right">4.214</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">DSC3</td>
+<td align="right">4.061</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">CLDN1</td>
+<td align="right">4.040</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Malignant Cells Lining Cyst</td>
+<td align="left">FGF1</td>
+<td align="right">3.945</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="endothelial-cells" class="section level3">
+<h3>Endothelial Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">CLDN5</td>
+<td align="right">7.105</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">CCL14</td>
+<td align="right">6.534</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">SELP</td>
+<td align="right">6.491</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">PTPRB</td>
+<td align="right">6.353</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">CLEC14A</td>
+<td align="right">6.242</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">EGFL7</td>
+<td align="right">6.208</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">TEK</td>
+<td align="right">6.044</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">TIE1</td>
+<td align="right">6.028</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">FLT4</td>
+<td align="right">6.023</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">ROBO4</td>
+<td align="right">6.005</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">ADGRL4</td>
+<td align="right">5.995</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">NOTCH4</td>
+<td align="right">5.954</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">CDH5</td>
+<td align="right">5.910</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Endothelial Cells</td>
+<td align="left">SHANK3</td>
+<td align="right">5.903</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Endothelial Cells</td>
+<td align="left">MMRN2</td>
+<td align="right">5.877</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="fallopian-tube-epithelium" class="section level3">
+<h3>Fallopian Tube Epithelium</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">PAX2</td>
+<td align="right">5.498</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">CD22</td>
+<td align="right">4.930</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">ERP27</td>
+<td align="right">4.804</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">WDR72</td>
+<td align="right">4.794</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">LGR5</td>
+<td align="right">4.550</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">AC007906.2</td>
+<td align="right">4.310</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">HNF1B</td>
+<td align="right">4.174</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">SLITRK5</td>
+<td align="right">4.145</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">CDH16</td>
+<td align="right">4.048</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">ADCYAP1R1</td>
+<td align="right">3.767</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">PPP1R1B</td>
+<td align="right">3.586</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">MLXIPL</td>
+<td align="right">3.572</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">S100A1</td>
+<td align="right">3.557</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">TMEM45B</td>
+<td align="right">3.506</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fallopian Tube Epithelium</td>
+<td align="left">MLPH</td>
+<td align="right">3.375</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="stromal-associated-fibroblasts" class="section level3">
+<h3>Stromal Associated Fibroblasts</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">ABCA10</td>
+<td align="right">6.371</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">C7</td>
+<td align="right">5.227</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">TNXB</td>
+<td align="right">5.047</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">ABCA8</td>
+<td align="right">5.039</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">DPT</td>
+<td align="right">4.692</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">SRPX</td>
+<td align="right">4.651</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">PI16</td>
+<td align="right">4.538</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">FAIM2</td>
+<td align="right">4.532</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">PAMR1</td>
+<td align="right">4.415</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">SVEP1</td>
+<td align="right">4.300</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">F3</td>
+<td align="right">4.011</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">SCN7A</td>
+<td align="right">3.840</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">COL4A4</td>
+<td align="right">3.764</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">ADM</td>
+<td align="right">3.753</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Stromal Associated Fibroblasts</td>
+<td align="left">AOX1</td>
+<td align="right">3.700</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="pericytes" class="section level3">
+<h3>Pericytes</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">AVPR1A</td>
+<td align="right">5.352</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">STEAP4</td>
+<td align="right">4.612</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">TBX2</td>
+<td align="right">4.446</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">CCDC102B</td>
+<td align="right">4.129</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">ENPEP</td>
+<td align="right">4.107</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">HEYL</td>
+<td align="right">4.055</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">TINAGL1</td>
+<td align="right">3.853</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">KCNJ8</td>
+<td align="right">3.838</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">CCL19</td>
+<td align="right">3.795</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">CNR1</td>
+<td align="right">3.791</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">PARM1</td>
+<td align="right">3.702</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">PGF</td>
+<td align="right">3.669</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">WFDC1</td>
+<td align="right">3.651</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pericytes</td>
+<td align="left">GJC1</td>
+<td align="right">3.639</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pericytes</td>
+<td align="left">KCNK17</td>
+<td align="right">3.626</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="smooth-muscle-cells" class="section level3">
+<h3>Smooth Muscle Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">CNN1</td>
+<td align="right">6.592</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">GRIA2</td>
+<td align="right">5.571</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">PLN</td>
+<td align="right">5.250</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">MYH11</td>
+<td align="right">5.180</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">SYNM</td>
+<td align="right">4.661</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">MAOB</td>
+<td align="right">4.612</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">SMTN</td>
+<td align="right">4.301</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">C11orf96</td>
+<td align="right">4.271</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">CACNA1H</td>
+<td align="right">4.101</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">MYLK</td>
+<td align="right">4.029</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">PLIN4</td>
+<td align="right">4.004</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">JPH2</td>
+<td align="right">3.963</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">CSRP1</td>
+<td align="right">3.916</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">IGSF9B</td>
+<td align="right">3.828</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Smooth Muscle Cells</td>
+<td align="left">SYNPO2</td>
+<td align="right">3.823</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="inflammatory-tumor-cells" class="section level3">
+<h3>Inflammatory Tumor Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">CXCL10</td>
+<td align="right">5.984</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">IFIT1</td>
+<td align="right">5.581</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">MX1</td>
+<td align="right">5.115</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">RSAD2</td>
+<td align="right">4.726</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">LAMP3</td>
+<td align="right">4.644</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">IFI44L</td>
+<td align="right">4.620</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">IFIT3</td>
+<td align="right">4.470</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">OAS1</td>
+<td align="right">4.285</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">SAMD9</td>
+<td align="right">4.202</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">DDX58</td>
+<td align="right">4.127</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">OAS3</td>
+<td align="right">4.104</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">IFIT2</td>
+<td align="right">4.077</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">GBP1</td>
+<td align="right">3.657</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">CXCL11</td>
+<td align="right">3.602</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Inflammatory Tumor Cells</td>
+<td align="left">IFIH1</td>
+<td align="right">3.528</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="granulosa-cells" class="section level3">
+<h3>Granulosa Cells</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">cluster</th>
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">TNS4</td>
+<td align="right">7.506</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">GABRP</td>
+<td align="right">6.316</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">TRIM29</td>
+<td align="right">6.070</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">FGFR3</td>
+<td align="right">5.834</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">AGR2</td>
+<td align="right">5.806</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">ANXA8</td>
+<td align="right">5.661</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">MUC4</td>
+<td align="right">5.344</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">DSG3</td>
+<td align="right">5.291</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">FAT2</td>
+<td align="right">4.902</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">NECTIN1</td>
+<td align="right">4.868</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">DSC3</td>
+<td align="right">4.867</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">CEACAM5</td>
+<td align="right">4.774</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">CYP3A5</td>
+<td align="right">4.773</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">BARX2</td>
+<td align="right">4.724</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Granulosa Cells</td>
+<td align="left">FOXA1</td>
+<td align="right">4.706</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="assess-annotation-of-ciliated-epithelial-cells"
+class="section level2">
+<h2>Assess annotation of Ciliated Epithelial Cells</h2>
+<p>The UMAP projections and spatial distribution for Ciliated Epithelial
+Cells were assessed to determine whether this population represented a
+biologically coherent cell type.</p>
+<pre class="r"><code># Plot of full dataset UMAP annotated with cell_type label transfer
+DimPlot_full &lt;- DimPlot(
+  xenium.obj,
+  reduction = &quot;full.umap&quot;,
+  group.by = &quot;cell_type&quot;,
+  label = TRUE,
+  label.size = 3,
+  cols = custom_hex,
+  raster = TRUE) +
+  guides(colour = guide_legend(override.aes = list(size = 2))) +
+  theme(legend.title = element_blank(), legend.text = element_text(size = 7))
+
+# Highlight Ciliated Epithelial Cell cluster only
+DimPlot_ciliated &lt;- DimPlot(xenium.obj,
+                            reduction = &quot;full.umap&quot;,
+                            cells.highlight = list(
+                              &quot;Ciliated Epithelial Cells&quot; =
+                                rownames(subset(xenium.obj@meta.data, cell_type == &quot;Ciliated Epithelial Cells&quot;))),
+                            cols.highlight = &quot;#8EE525&quot;,
+                            cols = &quot;grey90&quot;,
+                            raster = TRUE) +
+  guides(colour = guide_legend(override.aes = list(size = 2))) +
+  theme(legend.title = element_blank(), legend.text = element_text(size = 7))
+
+# Create dataframe for ggplot2
+df &lt;- cbind(xenium.obj@meta.data,
+            GetTissueCoordinates(xenium.obj, image = &quot;fov&quot;))
+
+# Highlight spatial location of ciliated epithelial cells only
+Spatial_ciliated &lt;- ggplot(df, aes(x = x, y = y,
+                                   colour = ifelse(cell_type == &quot;Ciliated Epithelial Cells&quot;,
+                                                   &quot;Ciliated Epithelial Cells&quot;,
+                                                   &quot;Other&quot;))) +
+  geom_point(size = 0.3, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(values = c(&quot;Other&quot; = &quot;grey90&quot;, &quot;Ciliated Epithelial Cells&quot; = &quot;black&quot;)) +
+  theme_void() +
+  theme(legend.title = element_blank())</code></pre>
+<div id="plots" class="section level3 tabset">
+<h3 class="tabset">Plots</h3>
+<div id="full-dataset-umap" class="section level4">
+<h4>Full dataset UMAP</h4>
+<pre class="r"><code>DimPlot_full</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-1-1.png" alt="" width="100%" /></p>
+</div>
+<div id="ciliated-epithelial-cells-umap" class="section level4">
+<h4>Ciliated Epithelial Cells UMAP</h4>
+<pre class="r"><code>DimPlot_ciliated</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-2-1.png" alt="" width="100%" /></p>
+</div>
+<div id="ciliated-epithelial-cells-spatial-plot" class="section level4">
+<h4>Ciliated Epithelial Cells Spatial plot</h4>
+<pre class="r"><code>Spatial_ciliated</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-3-1.png" alt="" width="100%" /></p>
+</div>
+</div>
+</div>
+<div id="label-transfer-prediction-scores" class="section level2">
+<h2>Label transfer prediction scores</h2>
+<p>Label transfer prediction scores were examined to assess the
+confidence of the Ciliated Epithelial Cells annotations.</p>
+<pre class="r"><code># Show spatial plot with binary label transfer prediction score thresholding
+# Create dataframe
+df$ciliated_epithelial_cells &lt;- NA
+
+df$ciliated_epithelial_cells[df$cell_type == &quot;Ciliated Epithelial Cells&quot; &amp; df$predicted.id_full.score &gt;= 0.9] &lt;- &quot;&gt;=0.9&quot;
+
+df$ciliated_epithelial_cells[df$cell_type == &quot;Ciliated Epithelial Cells&quot; &amp; df$predicted.id_full.score &lt; 0.9] &lt;- &quot;&lt;0.9&quot;
+
+cilia_df &lt;- subset(df, cell_type == &quot;Ciliated Epithelial Cells&quot;)
+
+# Plot label transfer prediction score in ciliated epithelial population
+scores_plot &lt;- ggplot(cilia_df,aes(x = x, y = y, colour = predicted.id_full.score)) +
+  geom_point(size = 0.4) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_colour_viridis_c(limits = c(0,1)) +
+  theme_void() +
+  ggtitle(&quot;Ciliated epithelial cells: Label transfer prediction score&quot;)
+
+# Violin plot of label transfer prediction scores
+violin_plot &lt;- ggplot(cilia_df,  aes(x = &quot;Ciliated Epithelial Cells&quot;, y = predicted.id_full.score)) +
+  geom_violin(fill = &quot;#8EE525&quot;) + 
+  # geom_boxplot() +
+  theme_classic() +
+  xlab(&quot;&quot;) +
+  ylab(&quot;label prediction score&quot;) +
+  ggtitle(&quot;Label transfer prediction scores&quot;)
+
+# Entire tissue overlay
+df$highlight &lt;- &quot;Other&quot;
+
+df$highlight[df$cell_type == &quot;Ciliated Epithelial Cells&quot; &amp; df$predicted.id_full.score &gt;= 0.9] &lt;- &quot;Ciliated &gt;=0.9&quot;
+
+df$highlight[df$cell_type == &quot;Ciliated Epithelial Cells&quot; &amp; df$predicted.id_full.score &lt; 0.9] &lt;- &quot;Ciliated &lt;0.9&quot;
+
+binary_plot &lt;- ggplot() +
+  geom_point(data = subset(df, highlight == &quot;Other&quot;),
+             aes(x = x, y = y, color = &quot;Other&quot;),
+             size = 0.4) +
+  geom_point(data = subset(df, highlight == &quot;Ciliated &gt;=0.9&quot;),
+             aes(x = x, y = y, color = &quot;Ciliated &gt;=0.9&quot;),
+             size = 0.4) +
+  geom_point(data = subset(df, highlight == &quot;Ciliated &lt;0.9&quot;),
+             aes(x = x, y = y, color = &quot;Ciliated &lt;0.9&quot;),
+             size = 0.4) +
+  scale_color_manual(name = &quot;Cell type&quot;,
+                     values = c(&quot;Other&quot; = &quot;grey90&quot;,
+                                &quot;Ciliated &gt;=0.9&quot; = &quot;darkgreen&quot;,
+                                &quot;Ciliated &lt;0.9&quot; = &quot;red&quot;)) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  ggtitle(&quot;Spatial distribution of ciliated epithelial cells by prediction score&quot;)</code></pre>
+<div id="plots-1" class="section level3 tabset">
+<h3 class="tabset">Plots</h3>
+<div id="label-transfer-prediction-scores-ciliated"
+class="section level4">
+<h4>Label transfer prediction scores Ciliated</h4>
+<pre class="r"><code>scores_plot</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-4-1.png" alt="" width="100%" /></p>
+</div>
+<div id="violin-plot-label-transfer-prediction-scores"
+class="section level4">
+<h4>Violin plot label transfer prediction scores</h4>
+<pre class="r"><code>violin_plot</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-5-1.png" alt="" width="100%" /></p>
+</div>
+<div id="threshold-plot" class="section level4">
+<h4>Threshold plot</h4>
+<pre class="r"><code>binary_plot</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-6-1.png" alt="" width="100%" /></p>
+</div>
+</div>
+</div>
+<div id="subclusters" class="section level2">
+<h2>Subclusters</h2>
+<p>Ciliated Epithelial Cells were subclustered to determine whether
+distinct populations could explain the observed separation between cells
+located within and outside the histologically normal fallopian tube
+region.</p>
+<pre class="r"><code># Recompute UMAP on subset to identify subpopulations
+# Subset object
+cilia_obj &lt;- subset(xenium.obj, subset = cell_type == &quot;Ciliated Epithelial Cells&quot;)
+
+DefaultAssay(cilia_obj) &lt;- &quot;Xenium&quot;
+
+cilia_obj &lt;- cilia_obj %&gt;%
+  NormalizeData() %&gt;%
+  FindVariableFeatures() %&gt;%
+  ScaleData() %&gt;%
+  RunPCA(npcs = 20) %&gt;%
+  FindNeighbors(dims = 1:15) %&gt;%
+  FindClusters(resolution = 0.1) %&gt;%
+  RunUMAP(dims = 1:15)</code></pre>
+<pre><code>## Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+## 
+## Number of nodes: 1291
+## Number of edges: 51431
+## 
+## Running Louvain algorithm...
+## Maximum modularity in 10 random starts: 0.9152
+## Number of communities: 2
+## Elapsed time: 0 seconds</code></pre>
+<pre class="r"><code># UMAP of identified clusters
+UMAP_subclusters &lt;- DimPlot(cilia_obj,  group.by = &quot;seurat_clusters&quot;,  label = TRUE) # two clusters are identified at res = 0.1
+
+# Extract coordinates and metadata
+df_cilia &lt;- cbind(cilia_obj@meta.data, GetTissueCoordinates(cilia_obj, image = &quot;fov&quot;))
+
+# Plot spatial location of clusters
+spatial_subclusters &lt;- ggplot(df_cilia, aes(x = x, y = y, colour = seurat_clusters)) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  labs(colour = &quot;Cluster&quot;)
+
+# Highlight cluster 0 only
+cluster0_plot &lt;- ggplot(df_cilia,aes(x = x, y = y,  colour = seurat_clusters == &quot;0&quot;)) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(
+    values = c(&quot;FALSE&quot; = &quot;grey90&quot;,
+               &quot;TRUE&quot; = &quot;red&quot;),
+    labels = c(&quot;Other cluster&quot;,
+               &quot;Cluster 0&quot;)) +
+  theme_void() +
+  labs(colour = NULL)
+
+# Highlight cluster 1 only
+cluster1_plot &lt;- ggplot(df_cilia,aes(x = x, y = y,  colour = seurat_clusters == &quot;1&quot;)) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(values = c(&quot;FALSE&quot; = &quot;grey90&quot;,
+                                &quot;TRUE&quot; = &quot;red&quot;),
+                     labels = c(&quot;Other cluster&quot;,
+                                &quot;Cluster 1&quot;)) +
+  theme_void() +
+  labs(colour = NULL)</code></pre>
+<div id="plots-2" class="section level3 tabset">
+<h3 class="tabset">Plots</h3>
+<div id="umap-subclusters" class="section level4">
+<h4>UMAP subclusters</h4>
+<pre class="r"><code>UMAP_subclusters</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-7-1.png" alt="" width="100%" /></p>
+</div>
+<div id="spatial-location-subclusters" class="section level4">
+<h4>Spatial location subclusters</h4>
+<pre class="r"><code>spatial_subclusters</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-8-1.png" alt="" width="100%" /></p>
+</div>
+<div id="cluster-0" class="section level4">
+<h4>Cluster 0</h4>
+<pre class="r"><code>cluster0_plot</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-9-1.png" alt="" width="100%" /></p>
+</div>
+<div id="cluster-1" class="section level4">
+<h4>Cluster 1</h4>
+<pre class="r"><code>cluster1_plot</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-10-1.png" alt="" width="100%" /></p>
+</div>
+</div>
+<div id="markers" class="section level3">
+<h3>Markers</h3>
+<p>Differential expression analysis was performed to identify markers
+distinguishing the identified ciliated epithelial subclusters.</p>
+<pre class="r"><code># FindMarkers that distinguish identified clusters
+Idents(cilia_obj) &lt;- &quot;seurat_clusters&quot;
+
+markers &lt;- FindMarkers(cilia_obj,
+                       ident.1 = &quot;1&quot;,
+                       ident.2 = &quot;0&quot;,
+                       assay = &quot;Xenium&quot;,
+                       slot = &quot;data&quot;,
+                       test.use = &quot;wilcox&quot;)
+
+top_cluster1_all &lt;- markers %&gt;%
+  tibble::rownames_to_column(&quot;gene&quot;) %&gt;%
+  filter(avg_log2FC &gt; 0, p_val_adj &lt; 0.05) %&gt;%
+  arrange(p_val_adj)
+
+top_cluster1 &lt;- markers %&gt;%
+  tibble::rownames_to_column(&quot;gene&quot;) %&gt;%
+  filter(avg_log2FC &gt; 0, p_val_adj &lt; 0.05) %&gt;%
+  arrange(p_val_adj) %&gt;%
+  slice_head(n = 15)
+
+top_cluster0_all &lt;- markers %&gt;%
+  tibble::rownames_to_column(&quot;gene&quot;) %&gt;%
+  filter(avg_log2FC &lt; 0,
+         p_val_adj &lt; 0.05) %&gt;%
+  arrange(p_val_adj) 
+
+top_cluster0 &lt;- markers %&gt;%
+  tibble::rownames_to_column(&quot;gene&quot;) %&gt;%
+  filter(avg_log2FC &lt; 0,
+         p_val_adj &lt; 0.05) %&gt;%
+  arrange(p_val_adj) %&gt;%
+  slice_head(n = 15)
+
+kable(top_cluster1[, c(&quot;gene&quot;, &quot;avg_log2FC&quot;, &quot;p_val_adj&quot;)],
+      caption = &quot;Top markers enriched in Cluster 1&quot;)</code></pre>
+<table>
+<caption>Top markers enriched in Cluster 1</caption>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">AGR2</td>
+<td align="right">6.651313</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">PFKFB3</td>
+<td align="right">4.556289</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">ERP27</td>
+<td align="right">5.863462</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">KNDC1</td>
+<td align="right">5.133281</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">C4B</td>
+<td align="right">4.349247</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">C4A</td>
+<td align="right">4.310588</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">C6</td>
+<td align="right">3.153304</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">PDZD4</td>
+<td align="right">7.552026</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">CCND2</td>
+<td align="right">5.320336</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">TBX2</td>
+<td align="right">4.260681</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">CD44</td>
+<td align="right">4.724084</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">NXF3</td>
+<td align="right">4.761722</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">SCIN</td>
+<td align="right">4.792212</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">HOXB6</td>
+<td align="right">4.213020</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">WDR77</td>
+<td align="right">2.421447</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>kable(top_cluster0[, c(&quot;gene&quot;, &quot;avg_log2FC&quot;, &quot;p_val_adj&quot;)],
+      caption = &quot;Top markers enriched in Cluster 0&quot;)</code></pre>
+<table>
+<caption>Top markers enriched in Cluster 0</caption>
+<thead>
+<tr class="header">
+<th align="left">gene</th>
+<th align="right">avg_log2FC</th>
+<th align="right">p_val_adj</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">UCHL1</td>
+<td align="right">-6.546717</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">MLF1</td>
+<td align="right">-2.137037</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">RBM38</td>
+<td align="right">-2.237228</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">CD47</td>
+<td align="right">-2.098850</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">IFT57</td>
+<td align="right">-1.573751</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">LAPTM4B</td>
+<td align="right">-2.353004</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">YWHAZ</td>
+<td align="right">-1.588108</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">PRKCI</td>
+<td align="right">-2.187912</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">H19</td>
+<td align="right">-2.292517</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">NORAD</td>
+<td align="right">-1.205934</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">SQLE</td>
+<td align="right">-1.989957</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">MUC16</td>
+<td align="right">-3.286836</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">CFAP100</td>
+<td align="right">-1.057106</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">PLXNB1</td>
+<td align="right">-1.111916</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">CYP4B1</td>
+<td align="right">-2.069103</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cell-type-enrichment-analysis" class="section level3">
+<h3>Cell type enrichment analysis</h3>
+<p>To further characterise the identified ciliated epithelial
+subclusters, marker genes from each cluster were analysed using Enrichr
+against the CellMarker and PanglaoDB reference databases. These
+databases were used to determine whether either cluster was enriched for
+annotated ciliated epithelial cell signatures or alternative cell
+states.</p>
+<pre class="r"><code># Cluster specific markers for enrichr
+Idents(cilia_obj) &lt;- &quot;seurat_clusters&quot;
+all_markers &lt;- FindAllMarkers(
+  cilia_obj,
+  only.pos = TRUE,
+  assay = &quot;Xenium&quot;,
+  slot = &quot;data&quot;,
+  test.use = &quot;wilcox&quot;)
+
+cluster1_markers_enrichr &lt;- all_markers %&gt;%
+  filter(cluster == &quot;1&quot;, p_val_adj &lt; 0.05) %&gt;%
+  arrange(desc(avg_log2FC))
+
+cluster0_markers_enrichr &lt;- all_markers %&gt;%
+  filter(cluster == &quot;0&quot;, p_val_adj &lt; 0.05) %&gt;%
+  arrange(desc(avg_log2FC))
+
+# load databases
+dbs &lt;- c(&quot;CellMarker_Augmented_2021&quot;, &quot;PanglaoDB_Augmented_2021&quot;)
+
+# Run enrichr on both databases
+enrich_cluster1 &lt;- enrichr(cluster1_markers_enrichr$gene, dbs)</code></pre>
+<pre><code>## Uploading data to Enrichr... Done.
+##   Querying CellMarker_Augmented_2021... Done.
+##   Querying PanglaoDB_Augmented_2021... Done.
+## Parsing results... Done.</code></pre>
+<pre class="r"><code>enrich_cluster0 &lt;- enrichr(cluster0_markers_enrichr$gene, dbs)</code></pre>
+<pre><code>## Uploading data to Enrichr... Done.
+##   Querying CellMarker_Augmented_2021... Done.
+##   Querying PanglaoDB_Augmented_2021... Done.
+## Parsing results... Done.</code></pre>
+<pre class="r"><code>cluster1_cellmarker &lt;- enrich_cluster1$CellMarker_Augmented_2021 %&gt;%
+  arrange(Adjusted.P.value) %&gt;%
+  slice_head(n = 10)
+
+cluster1_panglao &lt;- enrich_cluster1$PanglaoDB_Augmented_2021 %&gt;%
+  arrange(Adjusted.P.value) %&gt;%
+  slice_head(n = 10)
+
+cluster0_cellmarker &lt;- enrich_cluster0$CellMarker_Augmented_2021 %&gt;%
+  arrange(Adjusted.P.value) %&gt;%
+  slice_head(n = 10)
+
+cluster0_panglao &lt;- enrich_cluster0$PanglaoDB_Augmented_2021 %&gt;%
+  arrange(Adjusted.P.value) %&gt;%
+  slice_head(n = 10)</code></pre>
+</div>
+<div id="enrichr-results" class="section level3 tabset">
+<h3 class="tabset">Enrichr results</h3>
+<div id="cluster-1---cellmarker" class="section level4">
+<h4>Cluster 1 - CellMarker</h4>
+<pre class="r"><code>kable(head(cluster1_cellmarker, 10), caption = &quot;Cluster 1 - CellMarker&quot;)</code></pre>
+<table style="width:100%;">
+<caption>Cluster 1 - CellMarker</caption>
+<colgroup>
+<col width="23%" />
+<col width="4%" />
+<col width="5%" />
+<col width="8%" />
+<col width="6%" />
+<col width="10%" />
+<col width="5%" />
+<col width="7%" />
+<col width="27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="left">Overlap</th>
+<th align="right">P.value</th>
+<th align="right">Adjusted.P.value</th>
+<th align="right">Old.P.value</th>
+<th align="right">Old.Adjusted.P.value</th>
+<th align="right">Odds.Ratio</th>
+<th align="right">Combined.Score</th>
+<th align="left">Genes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Endothelial cell:Cornea</td>
+<td align="left">3/13</td>
+<td align="right">0.0000110</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">90.550000</td>
+<td align="right">1034.15771</td>
+<td align="left">NT5E;LGR5;CD44</td>
+</tr>
+<tr class="even">
+<td align="left">Endometrial Stem cell:Endometrium</td>
+<td align="left">3/23</td>
+<td align="right">0.0000662</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">45.252273</td>
+<td align="right">435.42916</td>
+<td align="left">NT5E;LGR5;CD44</td>
+</tr>
+<tr class="odd">
+<td align="left">Osteoblast:Bone</td>
+<td align="left">3/24</td>
+<td align="right">0.0000755</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">43.095238</td>
+<td align="right">409.02553</td>
+<td align="left">NT5E;CD44;TBX2</td>
+</tr>
+<tr class="even">
+<td align="left">Ciliated Epithelial cell:Esophagus</td>
+<td align="left">8/425</td>
+<td align="right">0.0001048</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">6.137202</td>
+<td align="right">56.23918</td>
+<td
+align="left">C20ORF85;DNAH1;NXF3;SPAG6;LDLRAD1;KNDC1;DNAH9;CCDC33</td>
+</tr>
+<tr class="odd">
+<td align="left">Mesenchymal Stem cell:Amniotic Membrane</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+<tr class="even">
+<td align="left">Mesenchymal Stem cell:Embryonic Stem Cell</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+<tr class="odd">
+<td align="left">Mesenchymal Stromal cell:Skeletal Muscle</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+<tr class="even">
+<td align="left">Mesenchymal Stem cell:Foreskin</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+<tr class="odd">
+<td align="left">Mesenchymal Stromal cell:Umbilical Cord Blood</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+<tr class="even">
+<td align="left">Stromal cell:Adipose Tissue</td>
+<td align="left">2/5</td>
+<td align="right">0.0001165</td>
+<td align="right">0.0044065</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">198.288557</td>
+<td align="right">1795.99300</td>
+<td align="left">NT5E;CD44</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cluster-1---panglaodb" class="section level4">
+<h4>Cluster 1 - PanglaoDB</h4>
+<pre class="r"><code>kable(head(cluster1_panglao, 10), caption = &quot;Cluster 1 - PanglaoDB&quot;)</code></pre>
+<table>
+<caption>Cluster 1 - PanglaoDB</caption>
+<colgroup>
+<col width="14%" />
+<col width="5%" />
+<col width="6%" />
+<col width="11%" />
+<col width="7%" />
+<col width="13%" />
+<col width="7%" />
+<col width="9%" />
+<col width="24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="left">Overlap</th>
+<th align="right">P.value</th>
+<th align="right">Adjusted.P.value</th>
+<th align="right">Old.P.value</th>
+<th align="right">Old.Adjusted.P.value</th>
+<th align="right">Odds.Ratio</th>
+<th align="right">Combined.Score</th>
+<th align="left">Genes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Ciliated Cells</td>
+<td align="left">5/104</td>
+<td align="right">0.0000298</td>
+<td align="right">0.0031566</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">15.650253</td>
+<td align="right">163.10242</td>
+<td align="left">C20ORF85;SPAG6;LDLRAD1;DNAH9;FAM216B</td>
+</tr>
+<tr class="even">
+<td align="left">Ependymal Cells</td>
+<td align="left">5/136</td>
+<td align="right">0.0001070</td>
+<td align="right">0.0056733</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">11.808206</td>
+<td align="right">107.95382</td>
+<td align="left">C20ORF85;DNAH2;SPAG6;DNAH9;FAM216B</td>
+</tr>
+<tr class="odd">
+<td align="left">Ionocytes</td>
+<td align="left">4/107</td>
+<td align="right">0.0005124</td>
+<td align="right">0.0120585</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">11.846453</td>
+<td align="right">89.75347</td>
+<td align="left">C20ORF85;AGR2;DNAH9;FAM216B</td>
+</tr>
+<tr class="even">
+<td align="left">Spermatozoa</td>
+<td align="left">4/108</td>
+<td align="right">0.0005307</td>
+<td align="right">0.0120585</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">11.731953</td>
+<td align="right">88.47352</td>
+<td align="left">C20ORF85;APOL6;HNMT;FAM216B</td>
+</tr>
+<tr class="odd">
+<td align="left">Follicular Cells</td>
+<td align="left">4/110</td>
+<td align="right">0.0005688</td>
+<td align="right">0.0120585</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">11.509434</td>
+<td align="right">85.99831</td>
+<td align="left">C6;RORC;AQP7;PLG</td>
+</tr>
+<tr class="even">
+<td align="left">Intercalated Cells</td>
+<td align="left">4/118</td>
+<td align="right">0.0007406</td>
+<td align="right">0.0130838</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">10.697436</td>
+<td align="right">77.10774</td>
+<td align="left">DNAH2;SCIN;KCNJ16;DNAH9</td>
+</tr>
+<tr class="odd">
+<td align="left">Fibroblasts</td>
+<td align="left">5/232</td>
+<td align="right">0.0012365</td>
+<td align="right">0.0175643</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">6.781388</td>
+<td align="right">45.40480</td>
+<td align="left">NT5E;TNXB;FMOD;SOD3;CD44</td>
+</tr>
+<tr class="even">
+<td align="left">Epsilon Cells</td>
+<td align="left">4/138</td>
+<td align="right">0.0013256</td>
+<td align="right">0.0175643</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">9.091619</td>
+<td align="right">60.24002</td>
+<td align="left">C6;AQP7;VSTM2L;HABP2</td>
+</tr>
+<tr class="odd">
+<td align="left">Sertoli Cells</td>
+<td align="left">4/158</td>
+<td align="right">0.0021756</td>
+<td align="right">0.0256236</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7.902897</td>
+<td align="right">48.44837</td>
+<td align="left">PFKFB3;NXF3;FMOD;SOD3</td>
+</tr>
+<tr class="even">
+<td align="left">Proximal Tubule Cells</td>
+<td align="left">4/164</td>
+<td align="right">0.0024902</td>
+<td align="right">0.0263958</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7.604231</td>
+<td align="right">45.59044</td>
+<td align="left">SCIN;C6;SOD3;HABP2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cluster-0---cellmarker" class="section level4">
+<h4>Cluster 0 - CellMarker</h4>
+<pre class="r"><code>kable(head(cluster0_cellmarker, 10), caption = &quot;Cluster 0 - CellMarker&quot;)</code></pre>
+<table>
+<caption>Cluster 0 - CellMarker</caption>
+<colgroup>
+<col width="5%" />
+<col width="0%" />
+<col width="0%" />
+<col width="1%" />
+<col width="1%" />
+<col width="1%" />
+<col width="0%" />
+<col width="1%" />
+<col width="86%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="left">Overlap</th>
+<th align="right">P.value</th>
+<th align="right">Adjusted.P.value</th>
+<th align="right">Old.P.value</th>
+<th align="right">Old.Adjusted.P.value</th>
+<th align="right">Odds.Ratio</th>
+<th align="right">Combined.Score</th>
+<th align="left">Genes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Natural Killer T (NKT) cell:Fetal Kidney</td>
+<td align="left">167/4543</td>
+<td align="right">0.0e+00</td>
+<td align="right">0.0000000</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3.018215</td>
+<td align="right">158.36253</td>
+<td
+align="left">EIF4A1;KDM1A;PDCD6;ZFAND5;THUMPD3;CBLB;SMC4;FBL;EFR3A;FNTA;APMAP;PSMD2;KIF5B;PSMD3;RUVBL1;UBAP2L;KPNA2;HMGN3;AP2M1;SMARCC1;MBNL1;CSNK2A1;UBE4B;SDHA;SDHB;DPM1;MTAP;ILF3;DKC1;MAP7D1;NAAA;HECA;MXRA7;ADNP;RAF1;TP53;MMADHC;KPNB1;PRR13;SNRPB;DAP3;ANKRD17;KHDRBS1;DNMT1;SDC4;SHMT2;PRKDC;GMPS;SLC5A3;ATXN3;PTDSS1;LDHA;RRS1;PLCG1;SMN1;RBM12;ANKZF1;FDFT1;HSPA8;YES1;SLC35E1;CBX3;HMGA1;KLHL24;SMARCA4;CCT6A;HNRNPM;DLG1;COPS5;SP3;ANP32E;HNRNPD;MDM2;MKRN2;RAB5A;SLC2A4RG;BAP1;ATR;EIF4G1;TOP2B;DAZAP2;GSK3B;CDKN1B;PSIP1;ELAVL1;SYNCRIP;MAP1LC3A;SUMO1;C1QBP;TOPBP1;RAB8A;CCDC50;NCK1;CCT3;EIF5A;CCT2;SEC13;RBM14;PARP1;TUBB;VPS13B;NUTF2;TYK2;RHOC;GNL2;YWHAZ;RHOA;SFPQ;HAX1;PKM;KIF2A;HNRNPH1;NOA1;ZNF639;KXD1;CD47;TOP1;TKT;GART;RAB7A;ARF6;DDX27;SRSF1;PDHB;GNAI2;AURKA;HSPD1;CHRAC1;RMND5A;RBBP4;POLR2B;HSF1;UCP2;GPBP1L1;CCT8;VHL;POLR2H;P4HTM;PAK2;AAMP;CCT5;BRD4;RBM38;SMARCE1;PTPN1;CDKN2B;RWDD4;SSB;CDKN2A;PTGES3;TXNRD1;CRIPT;PTPN11;HSPE1;LRPPRC;ASXL1;DNAJA1;MPHOSPH9;ITCH;REST;GOLPH3;THEMIS2;SLMAP;APEX1;SPAG1;PNPLA6;SSBP3</td>
+</tr>
+<tr class="even">
+<td align="left">Progenitor cell:Undefined</td>
+<td align="left">18/103</td>
+<td align="right">0.0e+00</td>
+<td align="right">0.0000000</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">12.108359</td>
+<td align="right">347.20801</td>
+<td
+align="left">CCT3;EIF5A;EIF4A1;AHCY;SHMT2;TXNRD1;RPN1;NME1;CCT6A;GANAB;ALCAM;IRAK1;PSMD2;C1QBP;EIF4EBP1;KPNA2;CCT5;SNRPB</td>
+</tr>
+<tr class="odd">
+<td align="left">Mitotic Fetal Germ cell:Fetal Gonad</td>
+<td align="left">34/650</td>
+<td align="right">0.0e+00</td>
+<td align="right">0.0000049</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3.220939</td>
+<td align="right">55.92428</td>
+<td
+align="left">PYGB;PDCD6;F11R;FSTL1;FBLN5;ELK3;LAPTM4B;FBL;TMEM123;PTDSS1;LDHA;SOX17;ERBB3;DPYSL2;C1QBP;SERPINH1;SURF6;MYBL2;PLTP;AP2M1;CTSA;TUBB;PTPN11;RHOC;MYCL;MAVS;PKM;APEX1;CLDN7;ANP32E;CD47;TKT;MYL9;TP53</td>
+</tr>
+<tr class="even">
+<td align="left">Cancer cell:Brain</td>
+<td align="left">12/97</td>
+<td align="right">2.0e-07</td>
+<td align="right">0.0000223</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7.933063</td>
+<td align="right">123.47221</td>
+<td
+align="left">CCT6A;CCT3;SYNCRIP;PARP1;CSE1L;ACTL6A;CCT8;KPNA2;GART;CCT5;LRPPRC;HSPD1</td>
+</tr>
+<tr class="odd">
+<td align="left">Villous cytotrophoblast:Placenta</td>
+<td align="left">12/99</td>
+<td align="right">2.0e-07</td>
+<td align="right">0.0000224</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7.749901</td>
+<td align="right">118.85754</td>
+<td
+align="left">CCT6A;CCT3;ILF3;DNMT1;RFC4;KDM1A;PARP1;TUBB;RUVBL1;STMN1;GART;HSPD1</td>
+</tr>
+<tr class="even">
+<td align="left">Regulatory T (Treg) cell:Liver</td>
+<td align="left">24/417</td>
+<td align="right">6.0e-07</td>
+<td align="right">0.0000541</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3.498182</td>
+<td align="right">49.92337</td>
+<td
+align="left">CTSA;KDM5B;TFRC;SDC4;GADD45A;CDKN2A;NCOA3;HNRNPLL;RHOC;SMC4;SLC5A3;ALDH3A2;LAPTM4B;MAP1LC3A;PKM;SUMO1;DPYSL2;KIF5B;TRPS1;UCP2;CTNNB1;PAK2;PLTP;CCDC50</td>
+</tr>
+<tr class="odd">
+<td align="left">Lake Et al.Science.In8:Brain</td>
+<td align="left">11/98</td>
+<td align="right">1.5e-06</td>
+<td align="right">0.0001117</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7.083720</td>
+<td align="right">94.86511</td>
+<td
+align="left">CCT6A;TOP2A;CCT3;TPX2;CCT2;CENPF;BIRC5;DSG2;KPNA2;MAPK15;CCT5</td>
+</tr>
+<tr class="even">
+<td align="left">Megakaryocyte Progenitor cell:Subcutaneous Adipose
+Tissue</td>
+<td align="left">10/93</td>
+<td align="right">6.8e-06</td>
+<td align="right">0.0003149</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">6.732186</td>
+<td align="right">80.13827</td>
+<td
+align="left">CCT6A;CCT2;TFRC;CSE1L;CCT8;GART;CCT5;LRPPRC;AURKA;HSPD1</td>
+</tr>
+<tr class="odd">
+<td align="left">Erythroblast:Blood</td>
+<td align="left">10/93</td>
+<td align="right">6.8e-06</td>
+<td align="right">0.0003149</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">6.732186</td>
+<td align="right">80.13827</td>
+<td
+align="left">CCT6A;CCT2;TFRC;CSE1L;CCT8;GART;CCT5;LRPPRC;AURKA;HSPD1</td>
+</tr>
+<tr class="even">
+<td align="left">Mast Cell progenitor:Bone Marrow</td>
+<td align="left">10/93</td>
+<td align="right">6.8e-06</td>
+<td align="right">0.0003149</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">6.732186</td>
+<td align="right">80.13827</td>
+<td
+align="left">CCT6A;CCT2;TFRC;CSE1L;CCT8;GART;CCT5;LRPPRC;AURKA;HSPD1</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cluster-0---panglaodb" class="section level4">
+<h4>Cluster 0 - PanglaoDB</h4>
+<pre class="r"><code>kable(head(cluster0_panglao, 10), caption = &quot;Cluster 0 - PanglaoDB&quot;)</code></pre>
+<table>
+<caption>Cluster 0 - PanglaoDB</caption>
+<colgroup>
+<col width="15%" />
+<col width="3%" />
+<col width="4%" />
+<col width="7%" />
+<col width="5%" />
+<col width="9%" />
+<col width="5%" />
+<col width="6%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Term</th>
+<th align="left">Overlap</th>
+<th align="right">P.value</th>
+<th align="right">Adjusted.P.value</th>
+<th align="right">Old.P.value</th>
+<th align="right">Old.Adjusted.P.value</th>
+<th align="right">Odds.Ratio</th>
+<th align="right">Combined.Score</th>
+<th align="left">Genes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Reticulocytes</td>
+<td align="left">14/103</td>
+<td align="right">0.0000000</td>
+<td align="right">0.0000006</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">8.888550</td>
+<td align="right">170.41719</td>
+<td
+align="left">TFRC;PABPC4;SLC11A2;ILF3;LSG1;GANAB;POLR2B;RUVBL1;UBAP2L;TOPBP1;CCT8;GART;KPNB1;EIF4G1</td>
+</tr>
+<tr class="even">
+<td align="left">Embryonic Stem Cells</td>
+<td align="left">15/176</td>
+<td align="right">0.0000007</td>
+<td align="right">0.0000483</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">5.260330</td>
+<td align="right">74.32150</td>
+<td
+align="left">YAP1;YES1;PAWR;LAMC1;FSTL1;PTK2;PTPRG;LAPTM4B;GJA1;TRIM28;SERPINH1;CTNNB1;AMOTL2;DSG2;LGR4</td>
+</tr>
+<tr class="odd">
+<td align="left">Undefined Placental Cells</td>
+<td align="left">10/108</td>
+<td align="right">0.0000255</td>
+<td align="right">0.0011240</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">5.697376</td>
+<td align="right">60.24981</td>
+<td
+align="left">CCT3;EIF5A;H19;AHCY;TFRC;TRIM28;SHMT2;PSMD3;DSG2;MAPK15</td>
+</tr>
+<tr class="even">
+<td align="left">Podocytes</td>
+<td align="left">12/184</td>
+<td align="right">0.0001315</td>
+<td align="right">0.0043406</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3.902967</td>
+<td align="right">34.87789</td>
+<td
+align="left">YAP1;WWTR1;GJA1;ITGB5;CTTN;AMOTL2;LAMC1;SULF1;FSTL1;LGR4;PTPRG;VEGFA</td>
+</tr>
+<tr class="odd">
+<td align="left">Pluripotent Stem Cells</td>
+<td align="left">9/112</td>
+<td align="right">0.0001935</td>
+<td align="right">0.0051087</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4.863580</td>
+<td align="right">41.58449</td>
+<td
+align="left">SMARCC1;HDAC2;CENPF;RFC4;KDM1A;PARP1;SRSF1;GMPS;PSIP1</td>
+</tr>
+<tr class="even">
+<td align="left">Pulmonary Alveolar Type I Cells</td>
+<td align="left">9/131</td>
+<td align="right">0.0006182</td>
+<td align="right">0.0136002</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4.102144</td>
+<td align="right">30.30955</td>
+<td
+align="left">YAP1;WWTR1;SDC4;MAL2;CYP4B1;AMOTL2;PLXNB1;EMP2;VEGFA</td>
+</tr>
+<tr class="odd">
+<td align="left">Satellite Cells</td>
+<td align="left">9/139</td>
+<td align="right">0.0009455</td>
+<td align="right">0.0148374</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3.848126</td>
+<td align="right">26.79746</td>
+<td
+align="left">YAP1;WWTR1;DAG1;TIMP3;ITGA7;SCRIB;AMOTL2;LAMC1;FSTL1</td>
+</tr>
+<tr class="even">
+<td align="left">Granulosa Cells</td>
+<td align="left">8/112</td>
+<td align="right">0.0009547</td>
+<td align="right">0.0148374</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4.269231</td>
+<td align="right">29.68884</td>
+<td align="left">YAP1;CTTN;ADAMTS1;DAG1;SERPINH1;AMOTL2;LAMC1;FSTL1</td>
+</tr>
+<tr class="odd">
+<td align="left">Cardiac Stem And Precursor Cells</td>
+<td align="left">8/113</td>
+<td align="right">0.0010116</td>
+<td align="right">0.0148374</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4.228355</td>
+<td align="right">29.15951</td>
+<td
+align="left">YAP1;LAPTM4B;WWTR1;SERPINH1;AMOTL2;LAMC1;FSTL1;PTPRG</td>
+</tr>
+<tr class="even">
+<td align="left">Adipocyte Progenitor Cells</td>
+<td align="left">8/115</td>
+<td align="right">0.0011337</td>
+<td align="right">0.0149652</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4.148896</td>
+<td align="right">28.13884</td>
+<td
+align="left">YAP1;WWTR1;ADAMTS1;SERPINH1;TIMP3;AMOTL2;LAMC1;FSTL1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="assign-ciliated-cell-types" class="section level2">
+<h2>Assign Ciliated cell types</h2>
+<p>Based on the spatial distribution, marker expression patterns and
+enrichment analyses, subcluster 0 was reannotated as Tumour Associated
+Ciliated Epithelial Cells.</p>
+<pre class="r"><code># Assign refined annotation
+xenium.obj$cell_type_refined &lt;- xenium.obj$cell_type
+
+# Get cells belonging to cluster 0
+cluster0_cells &lt;- Cells(cilia_obj)[cilia_obj$seurat_clusters == &quot;0&quot;]
+
+# Replace annotation
+xenium.obj$cell_type_refined[cluster0_cells] &lt;- &quot;Tumour Associated Ciliated Epithelial Cells&quot;
+
+# Show refined cell types
+table(xenium.obj$cell_type_refined)</code></pre>
+<pre><code>## 
+##                   Ciliated Epithelial Cells                           Endothelial Cells                   Fallopian Tube Epithelium                             Granulosa Cells 
+##                                         264                                       20568                                        1939                                        1854 
+##                    Inflammatory Tumor Cells                                 Macrophages                 Malignant Cells Lining Cyst              MT-High, Jun+/Fos+ Tumor Cells 
+##                                        1395                                       27248                                        2119                                       99633 
+##                                   Pericytes                   Proliferative Tumor Cells                         Smooth Muscle Cells              Stromal Associated Fibroblasts 
+##                                       18408                                       20262                                       48827                                       25339 
+##                                T &amp; NK Cells                Tumor Associated Fibroblasts                                 Tumor Cells Tumour Associated Ciliated Epithelial Cells 
+##                                       13577                                       47538                                       16430                                        1027 
+##                          VEGFA+ Tumor Cells 
+##                                       60183</code></pre>
+</div>
+<div id="fallopian-tube-epithelium-refinement" class="section level2">
+<h2>Fallopian Tube Epithelium refinement</h2>
+<div id="secretory-epithelial-cells-annotation" class="section level3">
+<h3>Secretory Epithelial Cells annotation</h3>
+<p>Secretory Epithelial Cells were identified within the Fallopian Tube
+Epithelium population based on detectable PAX8 expression and annotated
+as a separate cell type. PAX8 is a recognised marker of secretory
+fallopian tube epithelial cells.</p>
+<pre class="r"><code># Subset Fallopian Tube Epithelium
+FT_obj &lt;- subset(xenium.obj, subset = cell_type == &quot;Fallopian Tube Epithelium&quot;)
+
+# Retrieve normalised PAX8 expression levels
+expr &lt;- FetchData(FT_obj, vars = &quot;PAX8&quot;)
+
+# Default label
+FT_obj$FT_subtype &lt;- &quot;Fallopian Tube Epithelium&quot;
+
+# Secretory cells
+FT_obj$FT_subtype[expr$PAX8 &gt; 0] &lt;- &quot;Secretory Epithelial Cells&quot;
+
+# Summary
+table(FT_obj$FT_subtype)</code></pre>
+<pre><code>## 
+##  Fallopian Tube Epithelium Secretory Epithelial Cells 
+##                       1179                        760</code></pre>
+<pre class="r"><code>prop.table(table(FT_obj$FT_subtype)) * 100</code></pre>
+<pre><code>## 
+##  Fallopian Tube Epithelium Secretory Epithelial Cells 
+##                   60.80454                   39.19546</code></pre>
+<pre class="r"><code># Annotate Secretory Epithelial Cells in main object
+# Get Secretory Epithelial Cells
+secretory_cells &lt;- Cells(FT_obj)[FT_obj$FT_subtype == &quot;Secretory Epithelial Cells&quot;]
+
+# Replace annotation
+xenium.obj$cell_type_refined[secretory_cells] &lt;- &quot;Secretory Epithelial Cells&quot;
+
+# Show refined cell types
+table(xenium.obj$cell_type_refined)</code></pre>
+<pre><code>## 
+##                   Ciliated Epithelial Cells                           Endothelial Cells                   Fallopian Tube Epithelium                             Granulosa Cells 
+##                                         264                                       20568                                        1179                                        1854 
+##                    Inflammatory Tumor Cells                                 Macrophages                 Malignant Cells Lining Cyst              MT-High, Jun+/Fos+ Tumor Cells 
+##                                        1395                                       27248                                        2119                                       99633 
+##                                   Pericytes                   Proliferative Tumor Cells                  Secretory Epithelial Cells                         Smooth Muscle Cells 
+##                                       18408                                       20262                                         760                                       48827 
+##              Stromal Associated Fibroblasts                                T &amp; NK Cells                Tumor Associated Fibroblasts                                 Tumor Cells 
+##                                       25339                                       13577                                       47538                                       16430 
+## Tumour Associated Ciliated Epithelial Cells                          VEGFA+ Tumor Cells 
+##                                        1027                                       60183</code></pre>
+<pre class="r"><code># Plot refined cell annotation in normal region
+# Subset normal fallopian tube region
+box &lt;- list(xmin = 7800, xmax = 10100, ymin = 3750, ymax = 6050)
+
+coords &lt;- GetTissueCoordinates(xenium.obj, image = &quot;fov&quot;)
+
+cells_keep &lt;- colnames(xenium.obj)[coords$x &gt; box$xmin &amp;
+                                     coords$x &lt; box$xmax &amp;
+                                     coords$y &gt; box$ymin &amp;
+                                     coords$y &lt; box$ymax]
+
+FT_obj_normal &lt;- subset(FT_obj, cells = cells_keep)
+
+# Plot refined cell annotation in normal region
+plot_ft_normal &lt;- cbind(FT_obj_normal@meta.data, GetTissueCoordinates(FT_obj_normal, image = &quot;fov&quot;))
+
+ft_cols &lt;- c(&quot;Secretory Epithelial Cells&quot; = &quot;#F28E2B&quot;,
+             &quot;Fallopian Tube Epithelium&quot; = &quot;#59A14F&quot;)
+
+ggplot(plot_ft_normal,
+       aes(x = x,  y = y,  col = FT_subtype)) +
+  geom_point(size = 1/3, stroke = 0) +
+  coord_equal() +
+  theme_void() +
+  scale_y_reverse() +
+  scale_color_manual(values = ft_cols) +
+  guides(color = guide_legend(
+    override.aes = list(size = 4),
+    ncol = 1)) +
+  theme(legend.position = &quot;right&quot;,
+        legend.text = element_text(size = 7),
+        legend.title = element_blank(),
+        legend.key.height = unit(2, &quot;mm&quot;),
+        legend.key.width = unit(1, &quot;mm&quot;))</code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/FT-1.png" alt="" width="100%" /></p>
+</div>
+</div>
+<div id="export" class="section level2">
+<h2>Export</h2>
+<div id="standardise-nomenclature" class="section level3">
+<h3>Standardise nomenclature</h3>
+<pre class="r"><code># British spelling
+xenium.obj$cell_type_refined &lt;- recode(xenium.obj$cell_type_refined,
+                                       &quot;Tumor Cells&quot; = &quot;Tumour Cells&quot;,
+                                       &quot;Proliferative Tumor Cells&quot; = &quot;Proliferative Tumour Cells&quot;,
+                                       &quot;VEGFA+ Tumor Cells&quot; = &quot;VEGFA+ Tumour Cells&quot;,
+                                       &quot;Inflammatory Tumor Cells&quot; = &quot;Inflammatory Tumour Cells&quot;,
+                                       &quot;MT-High, Jun+/Fos+ Tumor Cells&quot; = &quot;MT-High, Jun+/Fos+ Tumour Cells&quot;,
+                                       &quot;Tumor Associated Fibroblasts&quot; = &quot;Tumour Associated Fibroblasts&quot;)</code></pre>
+</div>
+<div id="master-export" class="section level3">
+<h3>Master export</h3>
+<pre class="r"><code>cell_type_refined &lt;- data.frame(cell_id = colnames(xenium.obj),
+                                group = xenium.obj$cell_type_refined)
+
+head(cell_type_refined)</code></pre>
+<pre><code>##               cell_id                           group
+## aaaaebmm-1 aaaaebmm-1      Proliferative Tumour Cells
+## aaaafhpp-1 aaaafhpp-1 MT-High, Jun+/Fos+ Tumour Cells
+## aaaahcem-1 aaaahcem-1      Proliferative Tumour Cells
+## aaaakeoi-1 aaaakeoi-1             VEGFA+ Tumour Cells
+## aaaalald-1 aaaalald-1 MT-High, Jun+/Fos+ Tumour Cells
+## aaaalomf-1 aaaalomf-1 MT-High, Jun+/Fos+ Tumour Cells</code></pre>
+<pre class="r"><code>write.csv(cell_type_refined, &quot;Data/cell_type_refined.csv&quot;, row.names = FALSE)</code></pre>
+</div>
+</div>
+<div id="visualisation" class="section level2">
+<h2>Visualisation</h2>
+<p>The final refined cell type annotations are visualised spatially
+below.</p>
+<pre class="r"><code># View final annotated cells using ggplot2
+plot_annotated &lt;- cbind(xenium.obj@meta.data, GetTissueCoordinates(xenium.obj, image = &quot;fov&quot;))
+
+# Set manual colours from palette
+manual_col &lt;- c(&quot;Proliferative Tumour Cells&quot; = &quot;#F1CE63&quot;,
+                &quot;MT-High, Jun+/Fos+ Tumour Cells&quot; = &quot;#86BCB6&quot;,
+                &quot;VEGFA+ Tumour Cells&quot; = &quot;#FABFD2&quot;,
+                &quot;Tumour Cells&quot; = &quot;#D37295&quot;,
+                &quot;Fallopian Tube Epithelium&quot; = &quot;#59A14F&quot;,
+                &quot;Macrophages&quot; = &quot;#8CD17D&quot;,
+                &quot;Tumour Associated Ciliated Epithelial Cells&quot; = &quot;#A0CBE8&quot;,
+                &quot;Ciliated Epithelial Cells&quot; = &quot;#4E79A7&quot;,
+                &quot;T &amp; NK Cells&quot; = &quot;#79706E&quot;,
+                &quot;Tumour Associated Fibroblasts&quot; = &quot;#BAB0AC&quot;,
+                &quot;Malignant Cells Lining Cyst&quot; = &quot;#B6992D&quot;,
+                &quot;Endothelial Cells&quot; = &quot;#D7B5A6&quot;,
+                &quot;Stromal Associated Fibroblasts&quot; = &quot;#FF9D9A&quot;,
+                &quot;Pericytes&quot; = &quot;#499894&quot;,
+                &quot;Smooth Muscle Cells&quot; = &quot;#E15759&quot;,
+                &quot;Inflammatory Tumour Cells&quot; = &quot;#B07AA1&quot;,
+                &quot;Granulosa Cells&quot; = &quot;#FFBE7D&quot;,
+                &quot;Secretory Epithelial Cells&quot; = &quot;#F28E2B&quot;)
+
+# Add legend order
+legend_order &lt;- c(&quot;Tumour Cells&quot;, &quot;Inflammatory Tumour Cells&quot;, &quot;Proliferative Tumour Cells&quot;, &quot;VEGFA+ Tumour Cells&quot;, &quot;MT-High, Jun+/Fos+ Tumour Cells&quot;, &quot;Malignant Cells Lining Cyst&quot;, &quot;Tumour Associated Fibroblasts&quot;, &quot;Tumour Associated Ciliated Epithelial Cells&quot;, &quot;Fallopian Tube Epithelium&quot;, &quot;Secretory Epithelial Cells&quot;, &quot;Ciliated Epithelial Cells&quot;, &quot;Granulosa Cells&quot;,&quot;Endothelial Cells&quot;, &quot;Pericytes&quot;, &quot;Stromal Associated Fibroblasts&quot;, &quot;Smooth Muscle Cells&quot;, &quot;Macrophages&quot;, &quot;T &amp; NK Cells&quot;)
+
+ggplot(plot_annotated, aes(x = x, y = y, col = cell_type_refined)) +
+  geom_point(size = 1/3, stroke = 0) +
+  coord_equal() +
+  theme_void() +
+  scale_y_reverse() + # flip y axis
+  scale_color_manual(values = manual_col, breaks = legend_order) +
+  guides(color = guide_legend(
+    override.aes = list(size = 4),
+    ncol = 1)) +
+  theme(legend.position = &quot;right&quot;,
+        legend.text  = element_text(size = 7),  
+        legend.title = element_blank(),   
+        legend.key.height = unit(2, &quot;mm&quot;),     
+        legend.key.width  = unit(1, &quot;mm&quot;))  </code></pre>
+<p><img src="Cell_annotation_refinement_files/figure-html/Plot%20annotated%20cells-1.png" alt="" width="100%" /></p>
+<pre class="r"><code># Global limits for entire dataset
+xlim_all &lt;- range(plot_annotated$x, na.rm = TRUE)
+ylim_all &lt;- range(plot_annotated$y, na.rm = TRUE)
+
+plot_cell_type &lt;- function(ct) {
+  ggplot(subset(plot_annotated, cell_type_refined == ct),
+         aes(x = x, y = y)) +
+    geom_point(color = manual_col[ct],
+               size = 1/3,
+               stroke = 0) +
+    coord_equal(xlim = xlim_all,
+                ylim = ylim_all) +
+    theme_void() +
+    scale_y_reverse() +
+    ggtitle(ct) +
+    theme(plot.title = element_text(size = 10,
+                                    hjust = 0.5),
+          legend.position = &quot;none&quot;
+    )
+}
+
+cell_types &lt;- unique(plot_annotated$cell_type_refined)
+plots &lt;- lapply(cell_types, plot_cell_type)
+names(plots) &lt;- cell_types</code></pre>
+<div id="highlight-cell-types-separately" class="section level3 tabset">
+<h3 class="tabset">Highlight cell types separately</h3>
+<div id="proliferative-tumour-cells" class="section level4">
+<h4>Proliferative Tumour Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-1.png" alt="" width="672" /></p>
+</div>
+<div id="mt-high-junfos-tumour-cells" class="section level4">
+<h4>MT-High, Jun+/Fos+ Tumour Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-2.png" alt="" width="672" /></p>
+</div>
+<div id="vegfa-tumour-cells" class="section level4">
+<h4>VEGFA+ Tumour Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-3.png" alt="" width="672" /></p>
+</div>
+<div id="tumour-cells" class="section level4">
+<h4>Tumour Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-4.png" alt="" width="672" /></p>
+</div>
+<div id="macrophages-1" class="section level4">
+<h4>Macrophages</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-5.png" alt="" width="672" /></p>
+</div>
+<div id="tumour-associated-ciliated-epithelial-cells"
+class="section level4">
+<h4>Tumour Associated Ciliated Epithelial Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-6.png" alt="" width="672" /></p>
+</div>
+<div id="t-nk-cells-1" class="section level4">
+<h4>T &amp; NK Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-7.png" alt="" width="672" /></p>
+</div>
+<div id="tumour-associated-fibroblasts" class="section level4">
+<h4>Tumour Associated Fibroblasts</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-8.png" alt="" width="672" /></p>
+</div>
+<div id="malignant-cells-lining-cyst-1" class="section level4">
+<h4>Malignant Cells Lining Cyst</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-9.png" alt="" width="672" /></p>
+</div>
+<div id="endothelial-cells-1" class="section level4">
+<h4>Endothelial Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-10.png" alt="" width="672" /></p>
+</div>
+<div id="fallopian-tube-epithelium-1" class="section level4">
+<h4>Fallopian Tube Epithelium</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-11.png" alt="" width="672" /></p>
+</div>
+<div id="stromal-associated-fibroblasts-1" class="section level4">
+<h4>Stromal Associated Fibroblasts</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-12.png" alt="" width="672" /></p>
+</div>
+<div id="pericytes-1" class="section level4">
+<h4>Pericytes</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-13.png" alt="" width="672" /></p>
+</div>
+<div id="smooth-muscle-cells-1" class="section level4">
+<h4>Smooth Muscle Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-14.png" alt="" width="672" /></p>
+</div>
+<div id="inflammatory-tumour-cells" class="section level4">
+<h4>Inflammatory Tumour Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-15.png" alt="" width="672" /></p>
+</div>
+<div id="granulosa-cells-1" class="section level4">
+<h4>Granulosa Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-16.png" alt="" width="672" /></p>
+</div>
+<div id="secretory-epithelial-cells" class="section level4">
+<h4>Secretory Epithelial Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-17.png" alt="" width="672" /></p>
+</div>
+<div id="ciliated-epithelial-cells-1" class="section level4">
+<h4>Ciliated Epithelial Cells</h4>
+<p><img src="Cell_annotation_refinement_files/figure-html/unnamed-chunk-15-18.png" alt="" width="672" /></p>
+</div>
+</div>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>The initial cell type annotations generated using the 10x Genomics
+label transfer workflow were refined.</p>
+<p>Ciliated Epithelial Cells segregated into two distinct
+subpopulations. One population localised predominantly within the
+histologically normal fallopian tube epithelium and retained a canonical
+ciliated epithelial transcriptional profile.. The second population was
+enriched outside the normal fallopian tube region and was therefore
+reannotated as Tumour Associated Ciliated Epithelial Cells.</p>
+<p>In addition, Secretory Epithelial Cells were identified within the
+Fallopian Tube Epithelium population using PAX8 expression and annotated
+as a separate cell type.</p>
+<p>The refined annotations generated here were used in all downstream
+analyses.</p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
