@@ -1,0 +1,137 @@
+---
+title: "Cluster parameter optimisation"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Overview
+This vignette demonstrates how to optimise the BANKSY* clustering parameters used by SpatialCopyInference. We compare different combinations of BANKSY smoothing `lambda` and clustering `resolution` to identify settings that best capture spatially coherent SCNA-defined populations.
+
+To reproduce this example, first download the Xenium ovarian cancer dataset from:
+<https://www.10xgenomics.com/datasets/xenium-prime-ffpe-human-ovarian-cancer>
+
+```{r Import data example paths, eval = FALSE}
+# Path to Xenium output directory
+data_dir <- "path/to/Xenium_outputs/outs"
+
+# Path to refined cell type annotations
+annotation_file <- "path/to/cell_type_annotations.csv"
+```
+
+```{r}
+# Load SpatialCopyInference
+library(SpatialCopyInference)
+
+# Import data
+xenium.obj <- import_xenium(data_dir, annotation_file)
+
+# Quality control
+xenium.obj <- filter_cells(xenium.obj)
+xenium.obj <- filter_genes(xenium.obj, min_cells = 50, min_counts = 50)
+
+# Normalisation
+xenium.obj <- normalise_data(xenium.obj)
+
+# Compute chromosome arm means 
+arm_means <- compute_arm_means(xenium.obj, min_genes_per_arm = 5)
+
+# SCNA inference
+arm_ratios <- compute_arm_ratios(arm_means, 
+                                 xenium.obj,
+                                 group_var = "group",
+                                 reference = c("Fallopian Tube Epithelium", "Secretory Epithelial Cells"))
+```
+## Spatial clustering optimisation
+Here we compare multiple combinations of `lambda` and `resolution`.
+
+### Lambda = 0.8
+```{r, warning = FALSE, message = FALSE}
+BANKSY.obj <- compute_spatial_clusters(
+  arm_ratios = arm_ratios,
+  xenium.obj = xenium.obj,
+  lambda = 0.8,
+  resolution = c(0.05, 0.1, 0.5)
+)
+
+heatmaps <- plot_cluster_heatmaps(
+  BANKSY.obj,
+  resolutions = c(0.05, 0.1, 0.5)
+)
+```
+
+### Lambda = 0.2
+```{r, warning = FALSE, message = FALSE}
+BANKSY.obj_02 <- compute_spatial_clusters(
+  arm_ratios = arm_ratios,
+  xenium.obj = xenium.obj,
+  lambda = 0.2,
+  resolution = c(0.05, 0.1, 0.5)
+)
+
+heatmaps_02 <- plot_cluster_heatmaps(
+  BANKSY.obj_02,
+  resolutions = c(0.05, 0.1, 0.5)
+)
+```
+
+## Heatmap comparison
+Heatmaps are compared across parameter combinations below.
+
+### Lambda = 0.8 {.tabset}
+
+#### Res = 0.05
+
+```{r, out.width = "100%", fig.width = 12, fig.height = 1.8}
+heatmaps$res_0.05
+```
+
+#### Res = 0.1
+
+```{r, out.width ="100%", fig.width = 12, fig.height = 2}
+heatmaps$res_0.1
+```
+
+#### Res = 0.5
+
+```{r, out.width = "100%", fig.width = 12, fig.height = 4}
+heatmaps$res_0.5
+```
+
+### Lambda = 0.2 {.tabset}
+
+#### Res = 0.05
+
+```{r, out.width = "100%", fig.width = 12, fig.height = 2.3}
+heatmaps_02$res_0.05
+```
+
+#### Res = 0.1
+
+```{r, out.width = "100%", fig.width = 12, fig.height = 3}
+heatmaps_02$res_0.1
+```
+
+#### Res = 0.5
+
+```{r, out.width = "100%", fig.width = 12, fig.height = 5}
+heatmaps_02$res_0.5
+```
+
+## Summary
+Optimisation of the mixing parameter (λ) and clustering resolution (res) enabled stable cluster identification, with λ = 0.8 and res = 0.1 providing the clearest separation of biologically distinct populations.
+
+## References
+*Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for
+scalable spatial omics data analysis. Nat. Genet. 56, 431–441 (2024).

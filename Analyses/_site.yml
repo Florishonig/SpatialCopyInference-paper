@@ -1,0 +1,25 @@
+name: "SpatialCopyInference-paper"
+
+navbar:
+  title: "SpatialCopyInference-paper"
+  left:
+    - text: "Analyses"
+      menu:
+        - text: "TCGA"
+          href: TCGA.html
+        - text: "Cell annotation refinement"
+          href: Cell_annotation_refinement.html
+        - text: "Cell type means"
+          href: Cell_type_means.html
+        - text: "Clustering parameter optimisation"
+          href: Clustering_parameter_optimisation.html
+        - text: "Normal region analyses"
+          href: Normal_region_analyses.html
+        - text: "Normal region only clustering"
+          href: Normal_region_only_clustering.html
+
+output:
+  html_document:
+    css: styles.css
+
+output_dir: docs

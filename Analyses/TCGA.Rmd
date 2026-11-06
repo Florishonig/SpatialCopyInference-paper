@@ -1,0 +1,132 @@
+---
+title: "TCGA"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+## Overview
+Here, the genome-wide frequency of somatic copy number alterations in the TCGA high-grade serous ovarian cancer (HGSOC) cohort is reproduced. Frequencies of copy number amplifications (AMP; green) and homozygous deletions (HOMDEL; purple) were obtained from the TCGA Ovarian Serous Cystadenocarcinoma PanCancer Atlas cohort through [cBioPortal](https://www.cbioportal.org/study/summary?id=ov_tcga_pan_can_atlas_2018) (n = 572; see [References](#references)).
+
+## Load libraries
+```{r load libraries, warning = FALSE, message = FALSE}
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(SpatialCopyInference)
+```
+
+## Import data
+```{r Import data, warning = FALSE, message = FALSE}
+# Import TCGA data
+TCGA <- read.delim("Data/CNA_Genes.txt")
+
+# Rename columns
+colnames(TCGA) <- c("Gene", "Gistic_Q", "Cytoband", "CNA",
+    "ProfiledSamples", "N", "Freq", "CancerGene")
+```
+
+## Gene level copy number frequencies
+```{r TCGA frequencies, warning = FALSE, message = FALSE, out.width = "100%", fig.width = 9, fig.height = 4}
+# Import packaged annotation data
+data("hg38_gene_info", package = "SpatialCopyInference")
+data("hg38_chrom_info", package = "SpatialCopyInference")
+
+# Merge
+TCGA_annot <- TCGA %>%
+    left_join(
+    hg38_gene_info,
+    by = c("Gene" = "hgnc_symbol")
+    ) %>%
+    mutate(
+        freq = as.numeric(gsub("%", "", Freq)),
+        plot_freq = ifelse(CNA %in% c("DEL", "HOMDEL"),
+                           -freq,
+                           freq)
+    ) %>%
+    filter(!is.na(cum_mid))
+
+# Smooth 2mb bins
+bin_size <- 2e6
+
+plot_df <- TCGA_annot %>%
+    mutate(
+        bin = floor(cum_mid / bin_size)
+    ) %>%
+    group_by(bin, CNA) %>%
+    summarise(
+        pos = mean(cum_mid),
+        freq = mean(freq),
+        .groups = "drop"
+    )
+
+# Supplementary Figure 3: Genome-wide frequency of somatic copy number alterations in TCGA HGSOC cohort
+ggplot() +
+    geom_area(
+        data = plot_df %>%
+            filter(CNA %in% c("AMP", "GAIN")),
+        aes(
+            x = pos,
+            y = freq,
+            fill = "AMP"
+        ),
+        alpha = 0.8
+    ) +
+    geom_area(
+        data = plot_df %>%
+            filter(CNA %in% c("DEL", "HOMDEL")),
+        aes(
+            x = pos,
+            y = -freq,
+            fill = "HOMDEL"
+        ),
+        alpha = 0.8
+    ) +
+    scale_fill_manual(
+        name = "CNA",
+        values = c(
+            "AMP" = "#8dd3c7",
+            "HOMDEL" = "#bebada"
+        )
+    ) +
+    geom_vline(
+        xintercept = hg38_chrom_info$cum_centromere_mid,
+        linetype = "dashed",
+        linewidth = 0.3
+    ) +
+    geom_vline(
+        xintercept = hg38_chrom_info$cum_length,
+        linewidth = 0.3
+    ) +
+    scale_x_continuous(
+        breaks = hg38_chrom_info$cum_chromosome_mid,
+        labels = gsub(
+            "chr",
+            "",
+            hg38_chrom_info$chrom
+        ),
+        expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+        limits = c(-35, 35),
+        breaks = c(-30, -20, -10, 0, 10, 20, 30)
+    ) +
+    labs(
+        x = "Chromosome",
+        y = "Frequency (%)"
+    ) +
+    theme_classic()
+```
+
+## References
+- Bell, D. et al. Integrated genomic analyses of ovarian carcinoma. Nature 474, 609–615
+(2011).
+
+- Weinstein, J. N. et al. The cancer genome atlas pan-cancer analysis project. Nat.
+Genet. 45, 1113–1120 (2013).
+
+- Cerami, E. et al. The cBio Cancer Genomics Portal: An open platform for exploring
+multidimensional cancer genomics data. Cancer Discov. 2, 401–404 (2012).

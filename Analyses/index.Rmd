@@ -1,0 +1,49 @@
+---
+title: ""
+output: html_document
+---
+
+## SpatialCopyInference-paper
+
+<hr style="border: none; height: 2px; background-color: #2C7FB8;">
+
+This website accompanies the **SpatialCopyInference** preprint and provides supplementary analyses.
+
+**Inferring somatic copy number aberrations from spatial transcriptomics data to study early cancer development**
+
+F Honig, C Brochen, M Basha, R Arora, M Jimenez-Linan, AC Antoniou, OM Rueda, F Correia Martins
+
+bioRxiv 2026.10.23.761433 
+
+[Read the preprint](https://www.biorxiv.org/content/10.64898/2026.10.23.761433v1.article-info)
+
+<br>
+
+## Available analyses:
+
+<hr class="section-divider">
+
+##### [Cell annotation refinement](Cell_annotation_refinement.html)
+
+- Refinement of cell type annotations, including re-evaluation of ciliated epithelial cells and identification of secretory epithelial cells as a distinct epithelial population.
+
+##### [Cell type means](Cell_type_means.html)
+
+- Comparison of chromosome arm-level mean expression profiles across annotated cell populations.
+
+##### [Clustering parameter optimisation](Clustering_parameter_optimisation.html)
+
+- Evaluation of BANKSY clustering parameters for spatial clustering.
+
+##### [Normal region analyses](Normal_region_analyses.html)
+
+- Analyses of cells belonging to the intermediate population located within the histologically normal fallopian tube.
+
+##### [Normal region only clustering](Normal_region_only_clustering.html)
+
+- Spatial clustering analysis using only cells from the normal fallopian tube epithelium.
+
+##### [TCGA](TCGA.html)
+
+- Reproduction of genome-wide somatic copy number alteration frequencies in the TCGA high-grade serous ovarian cancer cohort.
+

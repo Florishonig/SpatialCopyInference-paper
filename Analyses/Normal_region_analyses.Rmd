@@ -1,0 +1,1102 @@
+---
+title: "Normal Region"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+## Normal region analyses
+Here, we focus on cells belonging to the intermediate population (Cluster 3) located within the histologically normal fallopian tube, which may represent cells undergoing early transformation and therefore provides an opportunity to study the earliest stages of high-grade serous ovarian cancer development.
+
+First, required libraries are loaded
+```{r load libraries, include=TRUE, warning=FALSE, message=FALSE}
+# Load libraries
+library(Seurat) 
+library(dplyr) 
+library(ggplot2) 
+library(patchwork) 
+library(dbscan)
+library(FNN)
+```
+
+## Data import
+The Xenium object generated from the SpatialCopyInference workflow is imported. The object contains cell annotations, spatial coordinates, inferred copy number profiles and BANKSY clusters for the ovarian Xenium dataset.
+
+```{r Import data paths}
+xenium.obj <- readRDS("Data/Xenium_ovarian.rds")
+```
+
+Next, cells belonging to the histologically normal fallopian tube region are subset for downstream analyses.
+
+```{r Subset}
+# Subset normal region
+box <- list(xmin = 7800, xmax = 10100, ymin = 3750, ymax = 6050)
+
+coords <- GetTissueCoordinates(xenium.obj, image = "fov")
+cells_keep <- colnames(xenium.obj)[
+  coords$x > box$xmin & 
+  coords$x < box$xmax &
+  coords$y > box$ymin & 
+  coords$y < box$ymax]
+
+xenium.sub <- subset(xenium.obj, cells = cells_keep)
+
+coords_sub <- GetTissueCoordinates(xenium.sub, image = "fov")
+
+# Remove full Xenium object to reduce memory usage
+rm(xenium.obj)
+gc()
+```
+
+## Plot settings
+```{r Global plot settings}
+# Set manual colours from palette
+manual_col <- c("Proliferative Tumour Cells" = "#F1CE63",
+                "MT-High, Jun+/Fos+ Tumour Cells" = "#86BCB6",
+                "VEGFA+ Tumour Cells" = "#FABFD2",
+                "Tumour Cells" = "#D37295",
+                "Fallopian Tube Epithelium" = "#59A14F",
+                "Macrophages" = "#8CD17D",
+                "Tumour Associated Ciliated Epithelial Cells" = "#A0CBE8",
+                "Ciliated Epithelial Cells" = "#4E79A7",
+                "T & NK Cells" = "#79706E",
+                "Tumour Associated Fibroblasts" = "#BAB0AC",
+                "Malignant Cells Lining Cyst" = "#B6992D",
+                "Endothelial Cells" = "#D7B5A6",
+                "Stromal Associated Fibroblasts" = "#FF9D9A",
+                "Pericytes" = "#499894",
+                "Smooth Muscle Cells" = "#E15759",
+                "Inflammatory Tumour Cells" = "#B07AA1",
+                "Granulosa Cells" = "#FFBE7D",
+                "Secretory Epithelial Cells" = "#F28E2B")
+
+# Add legend order
+legend_order <- c("Tumour Cells", "Inflammatory Tumour Cells", "Proliferative Tumour Cells", "VEGFA+ Tumour Cells", "MT-High, Jun+/Fos+ Tumour Cells", "Malignant Cells Lining Cyst", "Tumour Associated Fibroblasts", "Tumour Associated Ciliated Epithelial Cells", "Fallopian Tube Epithelium", "Secretory Epithelial Cells", "Ciliated Epithelial Cells", "Granulosa Cells","Endothelial Cells", "Pericytes", "Stromal Associated Fibroblasts", "Smooth Muscle Cells", "Macrophages", "T & NK Cells")
+```
+
+## Cell type composition
+Here, we investigate the spatial distribution of cells with in Cluster 3 and compare cell type composition between Cluster 3 and non-cluster 3 within the normal fallopian tube region.
+```{r Cell type composition, out.width = "100%", fig.height = 2.5}
+# Define Cluster 3 cells
+plot_df_sub <- data.frame(cell = colnames(xenium.sub),
+                          x = coords_sub$x, 
+                          y = coords_sub$y)
+
+cells_cluster3 <- colnames(xenium.sub)[xenium.sub$banksy_clusters == 3]
+
+plot_df_sub$cluster3 <- plot_df_sub$cell %in% cells_cluster3
+
+# Add cell type annotations
+plot_df_sub$group <- xenium.sub$group[match(plot_df_sub$cell, colnames(xenium.sub))]
+
+# Add Cluster 3 vs Other to object
+xenium.sub$cluster3_status <- ifelse(plot_df_sub$cluster3[
+    match(colnames(xenium.sub), plot_df_sub$cell)],
+    "Cluster 3","Other")
+
+# Figure 4A (left): Spatial distribution of Cluster 3 cells
+ggplot(plot_df_sub, aes(x = x, y = y)) +
+  geom_point(colour = "grey",
+    size = 0.15) +
+  geom_point(
+    data = subset(plot_df_sub, cluster3),
+    aes(colour = group),
+    size = 0.4) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  scale_color_manual(values = manual_col) +
+  guides(colour = guide_legend(override.aes = list(size = 3))
+  ) +
+  theme(legend.position = "none",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 7))
+```
+
+## SEC enrichment
+To determine whether Secretory Epithelial Cells (SECs) are enriched within Cluster 3, cell type composition is compared between Cluster 3 and all other cells in the normal fallopian tube region.
+```{r SEC enrichment, fig.height = 4}
+# Quantify enrichment of Secretory Epithelial Cells in cluster 3
+# Fisher’s exact test 
+ft_sec <- fisher.test(table(plot_df_sub$cluster3,
+          xenium.sub$group == "Secretory Epithelial Cells"))
+ft_sec
+
+# Cell type composition
+bar_data <- xenium.sub@meta.data %>%
+  count(cluster3_status, group) %>%
+  group_by(cluster3_status) %>%
+  mutate(prop = n / sum(n))
+
+# Figure 4A (right): Cell type composition of Cluster 3 versus all other cells
+ggplot(bar_data,
+  aes(x = cluster3_status,
+    y = prop,
+    fill = group)) +
+  geom_col(width = .2) +
+  geom_text(aes(label = scales::percent(prop, accuracy = 0.1))
+          ,position = position_stack(vjust = 0.5),
+          size = 3,
+          check_overlap = TRUE) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = manual_col, breaks = legend_order) +
+  labs(x = NULL, y = "Cell type composition", fill = "") +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=9)) +
+  theme(axis.text.y=element_text(colour="black", size=9)) +
+  theme(axis.title.y=element_text(colour="black", size=9)) +
+  theme(legend.text=element_text(colour="black", size=8)) 
+```
+
+## TP53 high analyses
+Here, TP53 expression is used to define TP53-high cells within the normal fallopian tube region.
+```{r TP53 high, out.width="100%", fig.height = 2.5}
+# Fetch TP53 expression
+expr_sub <- FetchData(xenium.sub, vars = "TP53", layer = "data")
+
+plot_df_sub$TP53 <- expr_sub$TP53
+
+# Plot TP53 expression and distribution
+TP53_spatial <- ggplot(plot_df_sub, aes(x = x, y = y, col = TP53)) +
+    geom_point(size = 0.3) +
+    coord_equal() +
+    scale_y_reverse() +
+    theme_void() +
+    scale_colour_gradient(low = "lightgrey", high = "blue") +
+    ggtitle("TP53")
+ 
+TP53_dist_incl_zeroes <- ggplot(plot_df_sub, aes(x = "", y = TP53)) +
+                              geom_violin(fill = "lightblue", trim = FALSE) +
+                              geom_boxplot(width = 0.1, color = "black", fill = "white") +
+                              theme_minimal() +
+                              labs(title = "TP53 expression",
+                                   x = "",
+                                   y = "Log-normalised expression")
+
+plot_df_nonzero <- subset(plot_df_sub, TP53 > 0)
+
+TP53_dist_excl_zeroes <- ggplot(plot_df_nonzero, aes(x = "", y = TP53)) +
+                    geom_violin(fill = "lightblue", trim = FALSE) +
+                    geom_boxplot(width = 0.1, color = "black", fill = "white") +
+                    theme_minimal() +
+                    labs(title = "TP53 expression (non-zero only)",
+                         x = "",
+                         y = "Log-normalised expression")
+
+# Define TP53-high cells
+low_threshold <- quantile(plot_df_nonzero$TP53, 0.1)
+low_threshold 
+
+plot_df_sub$TP53_high <- plot_df_sub$TP53 > low_threshold
+
+table(plot_df_sub$TP53_high)
+
+# Spatial distribution of TP53-high cells
+TP53_high <- ggplot(plot_df_sub, aes(x = x, y = y, col = TP53_high)) +
+            geom_point(size = 0.3) +
+            coord_equal() +
+            scale_y_reverse() +
+            theme_void() +
+            scale_color_manual(values = c("grey", "red")) +
+            ggtitle("High TP53 cells")
+```
+
+### Plots TP53 {.tabset}
+
+#### TP53 expression
+```{r, out.width="100%", fig.height=4}
+TP53_spatial
+```
+
+#### TP53 distribution  
+```{r, fig.height=4}
+(TP53_dist_incl_zeroes | TP53_dist_excl_zeroes)
+```
+
+#### TP53-high classification
+```{r, out.width="100%", fig.height=4}
+TP53_high
+```
+
+### TP53-high in Cluster 3
+Here, we investigate whether TP53 high cells are enriched in cluster 3. Then we compare TP53 high cells vs TP53 low cells within cluster 3.
+```{r TP53-high in Cluster 3, fig.height = 4}
+# TP53-high enrichment Cluster 3
+tbl <- table(Cluster_3 = plot_df_sub$cluster3,TP53_high = plot_df_sub$TP53_high)
+ft_tp53_c3 <- fisher.test(tbl)
+ft_tp53_c3
+
+# Define TP53-high and TP53-low cells within Cluster 3
+plot_df_sub$TP53_c3_status <- NA
+
+plot_df_sub$TP53_c3_status[plot_df_sub$cluster3 
+              & plot_df_sub$TP53_high] <- "TP53high_cluster3"
+
+plot_df_sub$TP53_c3_status[plot_df_sub$cluster3 
+              & !plot_df_sub$TP53_high] <- "TP53low_cluster3"
+
+# Add classification to object
+xenium.sub$TP53_c3_status <- plot_df_sub$TP53_c3_status[
+  match(colnames(xenium.sub), plot_df_sub$cell)]
+
+table(xenium.sub$TP53_c3_status)
+
+# Restrict to Cluster 3 cells
+xenium.c3 <- subset(xenium.sub, subset = !is.na(TP53_c3_status))
+
+Idents(xenium.c3) <- "TP53_c3_status"
+
+# Differential expression
+markers_tp53_c3 <- FindMarkers(
+  xenium.c3,
+  ident.1 = "TP53high_cluster3",
+  ident.2 = "TP53low_cluster3")
+
+# Significant upregulated genes
+markers_tp53_c3_sig <- subset(markers_tp53_c3,
+  p_val_adj < 0.05 & avg_log2FC > 0)
+
+head(markers_tp53_c3_sig, 10)
+
+# Figure 4B: Spatial distribution of TP53-high cells Cluster 3
+plot_df_sub$state <- "Neither"
+
+plot_df_sub$state[
+  plot_df_sub$cluster3 & !plot_df_sub$TP53_high
+] <- "Cluster 3"
+
+plot_df_sub$state[
+  !plot_df_sub$cluster3 & plot_df_sub$TP53_high
+] <- "TP53+"
+
+plot_df_sub$state[
+  plot_df_sub$cluster3 & plot_df_sub$TP53_high
+] <- "Both"
+
+ggplot(plot_df_sub,
+       aes(x = x, y = y, colour = state)) +
+  geom_point(size = .3) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  scale_colour_manual(
+  values = c(
+    "Neither"   = "grey90",
+    "Cluster 3" = "#4E79A7",
+    "TP53+"     = "#59A14F",
+    "Both"      = "orange"
+  ),
+  breaks = c("Cluster 3", "TP53+", "Both"),
+  labels = c(
+        expression("Cluster 3 / " * TP53^low),
+    expression(TP53^high),
+    expression("Cluster 3 / " * TP53^high)
+  )
+) +
+  theme(legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 8)
+  ) +
+  guides(colour = guide_legend(
+      override.aes = list(size = 7)
+    )
+  ) 
+
+# Figure 4B: TP53-high enrichment Cluster 3
+bar_df_enr <- as.data.frame(prop.table(tbl, margin = 1))
+bar_df_enr$Cluster_3 <- factor(
+  bar_df_enr$Cluster_3,
+  levels = c(TRUE, FALSE),
+  labels = c("Cluster 3", "Other"))
+
+ggplot(bar_df_enr,
+  aes(x = Cluster_3,
+    y = Freq,
+    fill = TP53_high)) +
+  geom_col(width = 0.2) +
+  geom_text(aes(label = scales::percent(Freq, accuracy = 0.1) ),
+    position = position_stack(vjust = 0.5),
+    size = 3) +
+    scale_fill_manual(values = c("FALSE" = "grey80",
+    "TRUE" = "#59A14F"),
+  labels = c( expression(TP53^"low"), expression(TP53^"high"))
+  ) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_classic() +
+  labs(x = NULL,  y = expression(TP53^"high" ~ "percentage"), fill = NULL) +
+  theme(axis.text.x=element_text(colour="black", size=9)) +
+  theme(axis.text.y=element_text(colour="black", size=9)) +
+  theme(axis.title.y=element_text(colour="black", size=9)) +
+    theme(legend.text=element_text(colour="black", size=8))
+```
+
+### TP53 target gene activity by Cluster 3 status
+```{r TP53 target activity, fig.height = 4}
+# Top 10 p53 target genes from Fischer et al.
+# https://www.nature.com/articles/onc2016502#Tab1
+func_p53_genes <- c("CDKN1A", "RRM2B", "MDM2", "SUSD6", "GDF15",
+                     "BTG2", "DDB2", "GADD45A", "PLK3", "TIGAR")
+
+func_p53_genes_present <- intersect(func_p53_genes,
+  rownames(xenium.sub))
+
+func_p53_genes_present
+
+# Calculate module score
+xenium.sub <- AddModuleScore(xenium.sub,
+  features = list(func_p53_genes_present),
+  name = "targets_p53")
+
+Module_TP53_C3 <- FetchData(
+  xenium.sub,
+  vars = c("targets_p531",
+    "cluster3_status"))
+
+# Summary statistics
+aggregate(
+  targets_p531 ~ cluster3_status,
+  data = Module_TP53_C3,
+  FUN = median
+)
+
+# Statistical test
+wt_tp53_c3 <- wilcox.test(targets_p531 ~ cluster3_status,
+  data = Module_TP53_C3)
+wt_tp53_c3
+
+# Figure 4C: TP53 target gene module score comparing Cluster 3 and other cells
+ggplot(
+  Module_TP53_C3,
+  aes(
+    x = cluster3_status,
+    y = targets_p531,
+    fill = cluster3_status
+  )
+) +
+  geom_boxplot(
+    width = 0.2,
+    outlier.shape = NA
+  ) +
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "p53 target gene module score"
+  ) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(colour = "black", size = 13),
+    axis.text.y = element_text(colour = "black", size = 13),
+    axis.title.y = element_text(colour = "black", size = 13)
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Other" = "#beaed4",
+      "Cluster 3" = "#beaed4"
+    )
+  ) +
+  coord_cartesian(
+    ylim = c(-1, 3)
+  )
+```
+
+### TP53 target gene activity by TP53 status
+Here, p53 target gene activity is compared across TP53-high and TP53-low cells within and outside Cluster 3.
+```{r TP53 target activity by status, fig.height=4}
+# Define groups
+plot_df_sub$TP53_cluster_group <- NA
+
+plot_df_sub$TP53_cluster_group[
+  plot_df_sub$cluster3 & plot_df_sub$TP53_high
+] <- "TP53high_C3"
+
+plot_df_sub$TP53_cluster_group[
+  plot_df_sub$cluster3 & !plot_df_sub$TP53_high
+] <- "TP53low_C3"
+
+plot_df_sub$TP53_cluster_group[
+  !plot_df_sub$cluster3 & plot_df_sub$TP53_high
+] <- "TP53high_nonC3"
+
+plot_df_sub$TP53_cluster_group[
+  !plot_df_sub$cluster3 & !plot_df_sub$TP53_high
+] <- "TP53low_nonC3"
+
+# Add to object
+xenium.sub$TP53_cluster_group <- plot_df_sub$TP53_cluster_group[
+  match(colnames(xenium.sub), plot_df_sub$cell)
+]
+
+table(xenium.sub$TP53_cluster_group)
+
+Module_TP53 <- FetchData(
+  xenium.sub,
+  vars = c("targets_p531", "TP53_cluster_group")
+)
+
+Module_TP53$TP53_cluster_group <- factor(
+  Module_TP53$TP53_cluster_group,
+  levels = c("TP53high_C3", "TP53low_C3",
+    "TP53high_nonC3", "TP53low_nonC3")
+)
+
+# Supplementary Figure 4: TP53 target gene activity by TP53 and Cluster 3 status
+ggplot(
+  Module_TP53,
+  aes(
+    x = TP53_cluster_group,
+    y = targets_p531,
+    fill = TP53_cluster_group
+  )
+) +
+  geom_boxplot(
+    width = 0.2,
+    outlier.shape = NA
+  ) +
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "p53 target gene module score"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "TP53low_nonC3"  = "grey80",
+      "TP53high_nonC3" = "#59A14F",
+      "TP53low_C3"     = "grey80",
+      "TP53high_C3"    = "#59A14F"
+    )
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "TP53low_nonC3"  = expression(TP53^"low"),
+      "TP53high_nonC3" = expression(TP53^"high"),
+      "TP53low_C3"     = expression(TP53^"low"),
+      "TP53high_C3"    = expression(TP53^"high")
+    )
+  ) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(
+      colour = "black",
+      size = 10
+    ),
+    axis.text.y = element_text(
+      colour = "black",
+      size = 10
+    ),
+    axis.title.y = element_text(
+      colour = "black",
+      size = 10
+    )
+  ) + coord_cartesian(ylim = c(-1, 2))
+
+# Summary statistics
+aggregate(targets_p531 ~ TP53_cluster_group,
+  data = Module_TP53,
+  median)
+
+kt_tp53 <- kruskal.test(targets_p531 ~ TP53_cluster_group,
+  data = Module_TP53)
+kt_tp53
+
+pw_tp53 <- pairwise.wilcox.test(Module_TP53$targets_p531,
+  Module_TP53$TP53_cluster_group,
+  p.adjust.method = "BH")
+pw_tp53
+```
+
+## Secretory epithelial cells Cluster 3
+Secretory epithelial cells (SECs) within Cluster 3 are compared to all other SECs within the normal fallopian tube region.
+```{r SEC c3 v non-c3, fig.height = 4}
+# Identify Secretory Epithelial Cells
+cells_secretory <- colnames(xenium.sub)[xenium.sub$group == "Secretory Epithelial Cells"]
+
+plot_df_sub$Secretory <- plot_df_sub$cell %in% cells_secretory
+
+# Define SECs inside and outside Cluster 3
+plot_df_sub$classify_secretory_c3 <- NA
+
+plot_df_sub$classify_secretory_c3[
+  plot_df_sub$Secretory &
+  plot_df_sub$cluster3
+] <- "Secretory_cluster3"
+
+plot_df_sub$classify_secretory_c3[
+  plot_df_sub$Secretory &
+  !plot_df_sub$cluster3
+] <- "Secretory_not_cluster3"
+
+table(plot_df_sub$classify_secretory_c3, useNA = "ifany")
+
+# Add classification to Seurat object
+xenium.sub$Secretory_cluster3_status <-
+  plot_df_sub$classify_secretory_c3[
+    match(colnames(xenium.sub), plot_df_sub$cell)
+  ]
+
+table(xenium.sub$Secretory_cluster3_status, useNA = "ifany")
+
+# Restrict analysis to SECs
+xenium.secretory <- subset(
+  xenium.sub,
+  subset = !is.na(Secretory_cluster3_status)
+)
+
+Idents(xenium.secretory) <- "Secretory_cluster3_status"
+
+table(Idents(xenium.secretory))
+
+# Differential expression
+markers_secretory_c3 <- FindMarkers(
+  xenium.secretory,
+  ident.1 = "Secretory_cluster3",
+  ident.2 = "Secretory_not_cluster3",
+  min.pct = 0.05
+)
+
+# Significant upregulated genes
+markers_secretory_c3_sig <- subset(
+  markers_secretory_c3,
+  p_val_adj < 0.05 &
+  avg_log2FC > 0
+)
+
+head(markers_secretory_c3_sig, 10)
+```
+
+## SEC immune microenvironment
+Here, neighbourhood analysis of the immune microenvironment of SECs within cluster 3 vs outside cluster 3 (Other) is investigated.
+```{r Neighbourhood analysis, fig.height = 4}
+# Restrict to SECs
+secretory_cells <- plot_df_sub %>%
+  filter(!is.na(classify_secretory_c3))
+
+# Create neighbourhood graph
+radius <- 50
+
+coords_all <- as.matrix(
+  plot_df_sub[, c("x", "y")]
+)
+
+nn_radius <- frNN(
+  coords_all,
+  eps = radius
+)
+
+# Identify immune cells
+macrophage_ids <- which(plot_df_sub$group == "Macrophages")
+tnk_ids <- which(plot_df_sub$group == "T & NK Cells")
+
+# Count neighbouring immune cells
+count_neighbours <- function(cell_id, target_ids){
+
+  idx <- match(
+    cell_id,
+    plot_df_sub$cell
+  )
+
+  neigh_idx <- setdiff(
+    nn_radius$id[[idx]],
+    idx
+  )
+
+  sum(neigh_idx %in% target_ids)
+}
+
+secretory_cells$mac_count_50um <- sapply(
+  secretory_cells$cell,
+  count_neighbours,
+  target_ids = macrophage_ids
+)
+
+secretory_cells$tnk_count_50um <- sapply(
+  secretory_cells$cell,
+  count_neighbours,
+  target_ids = tnk_ids
+)
+
+# Total neighbours for density normalisation
+secretory_cells$total_neighbours_50um <- sapply(
+  secretory_cells$cell,
+  function(cell_id){
+
+    idx <- match(cell_id, plot_df_sub$cell)
+
+    length(
+      setdiff(
+        nn_radius$id[[idx]],
+        idx
+      )
+    )
+  }
+)
+
+# Neighbourhood composition
+secretory_cells$mac_pct_50um <-
+  100 * secretory_cells$mac_count_50um /
+  pmax(secretory_cells$total_neighbours_50um, 1)
+
+secretory_cells$tnk_pct_50um <-
+  100 * secretory_cells$tnk_count_50um /
+  pmax(secretory_cells$total_neighbours_50um, 1)
+
+# Plotting labels
+secretory_cells$classify_secretory_c3 <- factor(
+  secretory_cells$classify_secretory_c3,
+  levels = c("Secretory_cluster3", "Secretory_not_cluster3"
+  ),
+  labels = c("Cluster 3", "Other")
+)
+
+# Figure 4E: SEC immune composition Macrophages
+ggplot(
+  secretory_cells,
+  aes(
+    classify_secretory_c3,
+    mac_pct_50um,
+    fill = classify_secretory_c3
+  )
+) +
+  geom_boxplot(width = 0.2, fill = "#8CD17D") +
+  labs(
+    x = "",
+    y = "Macrophages within 50 μm (%)"
+  )+
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=9)) +
+  theme(axis.text.y=element_text(colour="black", size=9)) +
+  theme(axis.title.y=element_text(colour="black", size=9)) +
+  theme(legend.text=element_text(colour="black", size=9)) +
+  theme(legend.title=element_text(colour="black", size=9))
+
+# Figure 4E: SEC immune composition T & NK killer cells
+ggplot(
+  secretory_cells,
+  aes(
+    classify_secretory_c3,
+    tnk_pct_50um,
+    fill = classify_secretory_c3
+  )
+) +
+  geom_boxplot(width = 0.2, fill = "#79706E") +
+  labs(
+    x = "",
+    y = "T & NK cells within 50 μm (%)"
+  ) +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=9)) +
+  theme(axis.text.y=element_text(colour="black", size=9)) +
+  theme(axis.title.y=element_text(colour="black", size=9)) +
+  theme(legend.text=element_text(colour="black", size=9)) +
+  theme(legend.title=element_text(colour="black", size=9))
+
+# Spatial visualisation
+macrophages <- plot_df_sub %>%
+  filter(group == "Macrophages")
+
+tnk_cells <- plot_df_sub %>%
+  filter(group == "T & NK Cells")
+
+plot_cells <- bind_rows(
+
+  secretory_cells %>%
+    mutate(cell_type = as.character(classify_secretory_c3)),
+
+  macrophages %>%
+    mutate(cell_type = "Macrophages"),
+
+  tnk_cells %>%
+    mutate(cell_type = "T & NK Cells")
+)
+
+x0 <- max(plot_df_sub$x) - 150
+y0 <- max(plot_df_sub$y) + 100
+
+# Figure 4E: Spatial distribution of immune microenvironment surrounding SECs
+ggplot() +
+  geom_point(
+    data = plot_df_sub,
+    aes(x, y),
+    colour = "grey92",
+    size = 0.1
+  ) +
+  geom_point(
+    data = plot_cells,
+    aes(x, y, colour = cell_type),
+    size = 0.4
+  ) +
+    scale_y_reverse() +
+coord_equal() +
+scale_colour_manual(
+  breaks = c(
+    "Cluster 3",
+    "Other",
+    "Macrophages",
+    "T & NK Cells"
+  ),
+  values = c(
+    "Macrophages" = "#59A14F",
+    "T & NK Cells" = "#79706E",
+    "Cluster 3" = "#4E79A7",
+    "Other" = "#F28E2B"
+  )
+  ) +
+    annotate(
+    "segment",
+    x = x0,
+    xend = x0 + 50,
+    y = y0-250,
+    yend = y0-250,
+    linewidth = 1.2,
+    colour = "black"
+  ) +
+  annotate(
+    "text",
+    x = x0 + 25,
+    y = y0 -200,
+    label = "50 μm",
+    size =4.4
+  ) +
+    theme_void()  +  
+    theme(legend.position = "bottom",
+          legend.title = element_blank(),
+          legend.text = element_text(size = 8)) +
+    guides(colour = guide_legend(
+        override.aes = list(size = 4))) 
+
+# Distance metric
+# Secretory cell coordinates
+sec_coords <- as.matrix(
+  secretory_cells[, c("x", "y")]
+)
+
+# Macrophages
+mac_coords <- as.matrix(
+  plot_df_sub %>%
+    filter(group == "Macrophages") %>%
+    select(x, y)
+)
+
+nn_mac5 <- get.knnx(
+  data = mac_coords,
+  query = sec_coords,
+  k = 5
+)
+
+secretory_cells$mean_dist_mac5 <-
+  rowMeans(nn_mac5$nn.dist)
+
+# T & NK cells
+tnk_coords <- as.matrix(
+  plot_df_sub %>%
+    filter(group == "T & NK Cells") %>%
+    select(x, y)
+)
+
+nn_tnk5 <- get.knnx(
+  data = tnk_coords,
+  query = sec_coords,
+  k = 5
+)
+
+secretory_cells$mean_dist_tnk5 <-
+  rowMeans(nn_tnk5$nn.dist)
+
+# Figure 4E: SEC immune proximity Macrophages
+ggplot(
+  secretory_cells,
+  aes(
+    classify_secretory_c3,
+    mean_dist_mac5,
+    fill = classify_secretory_c3
+  )
+) +
+  geom_boxplot(width = 0.2, fill = "#8CD17D") +
+  labs(
+    x = "",
+    y = "Mean distance to 5 nearest Macrophages (μm)"
+  ) +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=11)) +
+  theme(axis.text.y=element_text(colour="black", size=11)) +
+  theme(axis.title.y=element_text(colour="black", size=10)) +
+  theme(legend.text=element_text(colour="black", size=11)) +
+  theme(legend.title=element_text(colour="black", size=11))
+
+# Figure 4E: SEC immune proximity T & NK killer cells
+ggplot(
+  secretory_cells,
+  aes(
+    classify_secretory_c3,
+    mean_dist_tnk5,
+    fill = classify_secretory_c3
+  )
+) +
+  geom_boxplot(width = 0.2, fill = "#79706E") +
+  labs(
+    x = "",
+    y = "Mean distance to 5 nearest T & NK cells (μm)"
+  ) +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=11)) +
+  theme(axis.text.y=element_text(colour="black", size=11)) +
+  theme(axis.title.y=element_text(colour="black", size=10)) +
+  theme(legend.text=element_text(colour="black", size=11)) +
+  theme(legend.title=element_text(colour="black", size=11))
+
+# Statistical summary
+p_mac_pct <- wilcox.test(
+  mac_pct_50um ~ classify_secretory_c3,
+  data = secretory_cells
+)$p.value
+
+p_tnk_pct <- wilcox.test(
+  tnk_pct_50um ~ classify_secretory_c3,
+  data = secretory_cells
+)$p.value
+
+p_mac_dist <- wilcox.test(
+  mean_dist_mac5 ~ classify_secretory_c3,
+  data = secretory_cells
+)$p.value
+
+p_tnk_dist <- wilcox.test(
+  mean_dist_tnk5 ~ classify_secretory_c3,
+  data = secretory_cells
+)$p.value
+
+results <- data.frame(
+  test = c(
+    "Macrophage % within 50 μm",
+    "T & NK % within 50 μm",
+    "Mean distance to 5 nearest macrophages",
+    "Mean distance to 5 nearest T & NK cells"
+  ),
+  p_value = c(
+    p_mac_pct,
+    p_tnk_pct,
+    p_mac_dist,
+    p_tnk_dist
+  )
+) 
+
+results$FDR <- p.adjust(
+  results$p_value,
+  method = "BH"
+)
+
+results
+```
+
+## Co-localisation SCNAs
+Here, co-localisation of SCNAs are investigated within the normal fallopian tube region, with a particular focus on chromosome arms 3q and 8q.
+```{r Co-localisation SCNAs, out.width="100%", fig.height = 4}
+# Load chromosome arm log ratios from SpatialCopyInference workflow
+arm_ratios <- readRDS("Data/arm_ratios_ovarian.rds")
+
+# Convert chromosome arm matrix to dataframe
+arm_means_df <- as.data.frame(t(arm_ratios))
+
+# Restrict to cells present in the normal region subset
+arm_means_df_sub <- arm_means_df[rownames(arm_means_df) %in% colnames(xenium.sub), ]
+
+# Define chromosome arm gains
+threshold <- 0.1  
+chr3q_pos_sub <- arm_means_df_sub$chr3_q >= threshold
+chr8q_pos_sub <- arm_means_df_sub$chr8_q >= threshold
+
+# Create analysis dataframe
+coords_sub <- GetTissueCoordinates(xenium.sub, image = "fov")
+
+co_plot_sub <- data.frame(
+  cell = colnames(xenium.sub),
+  x = coords_sub$x,
+  y = coords_sub$y,
+  cluster3 = colnames(xenium.sub) %in% cells_cluster3,
+  chr3 = chr3q_pos_sub,
+  chr8 = chr8q_pos_sub
+)
+
+co_plot_sub <- co_plot_sub %>%
+  mutate(
+    region = ifelse(
+      cluster3,
+      "Cluster 3",
+      "Other"
+    ),
+    status = case_when(
+      chr3 & chr8  ~ "chr3q & chr8q gain",
+      chr3 & !chr8 ~ "chr3q gain only",
+      !chr3 & chr8 ~ "chr8q gain only",
+      TRUE         ~ "Neither"
+    ),
+    both_gains = chr3 & chr8,
+    neither = !(chr3 | chr8)
+  )
+
+co_plot_sub <- co_plot_sub %>%
+  mutate(
+    coloc_state = case_when(
+      chr3 & chr8 & cluster3 ~ "Cluster 3: chr3q & chr8q gain",
+      chr3 & chr8 ~ "chr3q & chr8q gain",
+      cluster3 ~ "Cluster 3",
+      TRUE ~ "Other"
+    )
+  )
+
+# Enrichment tests: Cluster 3 versus Other
+ft_chr3 <- fisher.test(
+  table(
+    Cluster3 = co_plot_sub$cluster3,
+    Chr3gain = co_plot_sub$chr3
+  )
+)
+
+ft_chr8 <- fisher.test(
+  table(
+    Cluster3 = co_plot_sub$cluster3,
+    Chr8gain = co_plot_sub$chr8
+  )
+)
+
+ft_both <- fisher.test(
+  table(
+    Cluster3 = co_plot_sub$cluster3,
+    BothGains = co_plot_sub$both_gains
+  )
+)
+
+ft_neither <- fisher.test(
+  table(
+    Cluster3 = co_plot_sub$cluster3,
+    Neither = co_plot_sub$neither
+  )
+)
+
+# Figure 4D: Spatial distribution of chr3q and chr8q gains
+ggplot(
+  co_plot_sub,
+  aes(
+    x = x,
+    y = y,
+    colour = coloc_state
+  )
+) +
+  geom_point(size = 0.3) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_colour_manual(
+    values = c(
+      "Other" = "grey90",
+      "Cluster 3" = "#4E79A7",
+      "chr3q & chr8q gain" = "#59A14F",
+      "Cluster 3: chr3q & chr8q gain" = "orange"
+    ),
+    breaks = c(
+      "Cluster 3",
+      "chr3q & chr8q gain",
+      "Cluster 3: chr3q & chr8q gain"
+    )
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 7)
+  ) +
+  guides(
+    colour = guide_legend(
+      override.aes = list(size = 4)
+    )
+  )
+
+# Chr3q and chr8q co-localisation inside cluster 3
+cluster3_df <- subset(co_plot_sub, cluster3)
+
+tab_cluster3 <- table(chr3q = cluster3_df$chr3,
+  chr8q = cluster3_df$chr8)
+
+ft_cluster3 <- fisher.test(tab_cluster3)
+ft_cluster3
+
+# Bubble plot
+bubble_df <- co_plot_sub %>%
+  count(region, status) %>%
+  group_by(region) %>%
+  mutate(Percentage = 100 * n / sum(n)) %>%
+  ungroup()
+
+# Figure 4D: Enrichments bubble plot
+bubble_df$status <- factor(
+  bubble_df$status,
+  levels = c("chr3q & chr8q gain",
+    "chr8q gain only",
+    "chr3q gain only",
+    "Neither"))
+
+ggplot(bubble_df, aes(x = region, y = status, size = Percentage)) +
+  geom_point(shape = 21,fill = "#fdc086", colour = "black") +
+  geom_text(data = subset(bubble_df, Percentage >= 20),
+    aes(label = sprintf("%.1f%%", Percentage)),
+    size = 3) +
+  geom_text(data = subset(bubble_df, Percentage < 20),
+    aes(label = sprintf("%.1f%%", Percentage)),
+    size = 3,
+    nudge_x = 0.42) +
+  scale_size_area(max_size = 24,name = "Percentage") +
+  labs(x = "Region", y = "chr3q/chr8q gain status") +
+  theme_classic() +
+  theme(axis.text.x=element_text(colour="black", size=9)) +
+  theme(axis.text.y=element_text(colour="black", size=9)) +
+  theme(axis.title.y=element_text(colour="black", size=10)) +
+   theme(axis.title.x=element_text(colour="black", size=10))+
+    theme(legend.position = "none",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 7)) 
+
+# Figure 4D: Odds ratios forest plot
+forest_df <- data.frame(
+  Feature = c(
+    "Neither",
+    "chr3q gain only",
+    "chr8q gain only",
+    "chr3q & chr8q gain"
+  ),
+  OR = c(
+    unname(ft_neither$estimate),
+    unname(ft_chr3$estimate),
+    unname(ft_chr8$estimate),
+    unname(ft_both$estimate)
+  ),
+  Lower = c(
+    ft_neither$conf.int[1],
+    ft_chr3$conf.int[1],
+    ft_chr8$conf.int[1],
+    ft_both$conf.int[1]
+  ),
+  Upper = c(
+    ft_neither$conf.int[2],
+    ft_chr3$conf.int[2],
+    ft_chr8$conf.int[2],
+    ft_both$conf.int[2]
+  ),
+  P = c(
+    ft_neither$p.value,
+    ft_chr3$p.value,
+    ft_chr8$p.value,
+    ft_both$p.value
+  )
+)
+
+forest_df
+
+tabletext <- cbind(
+  c( forest_df$Feature),
+  c( rep("", nrow(forest_df))),
+  c(paste0(sprintf("%.2f", forest_df$OR),
+      " (", sprintf("%.2f", forest_df$Lower),
+      "–",sprintf("%.2f", forest_df$Upper),")")),
+  c(ifelse( forest_df$P < 2.2e-16, "<2.2 × 10⁻¹⁶",sprintf("%.2e", forest_df$P))))
+```

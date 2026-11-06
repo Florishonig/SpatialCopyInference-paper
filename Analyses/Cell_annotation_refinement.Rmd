@@ -1,0 +1,607 @@
+---
+title: "Cell annotation refinement"
+output:
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+## Cell annotation refinement
+Here, the cell type annotations generated using the 10x Genomics label transfer workflow were further refined (https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation). 
+
+In particular, the Ciliated Epithelial Cells population was re-evaluated because a substantial proportion of these cells were located outside the histologically normal fallopian tube epithelium.
+
+In addition, Secretory Epithelial Cells were identified within the Fallopian Tube Epithelium population and annotated as a separate cell type.
+
+## Load libraries
+```{r load libraries, include=TRUE, warning=FALSE, message=FALSE}
+# load libraries
+library(Seurat)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(enrichR)
+library(kableExtra)
+library(stringr)
+```
+
+## Import data
+Here, the Xenium object resulting from the "Annotating Cell Types in Xenium In Situ Data with Label Transfer" pipeline is imported (https://www.10xgenomics.com/analysis-guides/xenium-cell-type-annotation).
+
+```{r Import data, warning=FALSE, message=FALSE}
+# Import Xenium annotated data
+xenium.obj <- readRDS("Data/xenium.obj_annotated_scores.rds")
+
+# palettes
+custom_hex <- c("#3375AB", "#FFFF00", "#E8280E", "#8D1909", "#E47E11","#FF75A0", "#19297C", "#AC674E", "#805D93", "#13B0F7", "#8980F5", "#595959", "#0BFFFF", "#169873", "#8EE525", "#169873", "#52E097", "#8980F5", "#EE00B0")
+
+names(custom_hex) <- c("Tumor Associated Fibroblasts", "Malignant Cells Lining Cyst", "Tumor Cells", "Inflammatory Tumor Cells", "Proliferative Tumor Cells", "VEGFA+ Tumor Cells", "Stromal Associated Fibroblasts", "Endothelial Cells", "Stromal Associated Macrophages", "Smooth Muscle Cells", "Tumor Associated Macrophages", "T & NK Cells", "Pericytes", "Granulosa and FT Epithelial Cells", "Ciliated Epithelial Cells", "Granulosa Cells", "Fallopian Tube Epithelium", "Macrophages", "MT-High, Jun+/Fos+ Tumor Cells")
+```
+
+## Top markers {.tabset}
+Show top 15 markers for each annotated cell type.
+```{r FindAllMarkers, results = 'asis', warning = FALSE, message = FALSE}
+markers_entire <- FindAllMarkers(
+  xenium.obj,
+  only.pos = TRUE,
+  assay = "Xenium",
+  group.by = "cell_type",
+  slot = "data",
+  test.use = "wilcox"
+)
+
+top15_markers <- markers_entire %>%
+  group_by(cluster) %>%
+  slice_max(order_by = avg_log2FC, n = 15)
+
+cell_types <- sort(unique(top15_markers$cluster))
+
+for (ct in cell_types) {
+
+  cat("### ", ct, "\n\n", sep = "")
+
+  print(
+    kable(
+      top15_markers %>%
+        filter(cluster == ct) %>%
+        dplyr::select(
+          gene,
+          avg_log2FC,
+          p_val_adj
+        ),
+      digits = 3
+    )
+  )
+
+  cat("\n\n")
+}
+```
+
+## Assess annotation of Ciliated Epithelial Cells
+The UMAP projections and spatial distribution for Ciliated Epithelial Cells were assessed to determine whether this population represented a biologically coherent cell type.
+```{r Assess annotation, out.width="100%", warning=FALSE, message=FALSE}
+# Plot of full dataset UMAP annotated with cell_type label transfer
+DimPlot_full <- DimPlot(
+  xenium.obj,
+  reduction = "full.umap",
+  group.by = "cell_type",
+  label = TRUE,
+  label.size = 3,
+  cols = custom_hex,
+  raster = TRUE) +
+  guides(colour = guide_legend(override.aes = list(size = 2))) +
+  theme(legend.title = element_blank(), legend.text = element_text(size = 7))
+
+# Highlight Ciliated Epithelial Cell cluster only
+DimPlot_ciliated <- DimPlot(xenium.obj,
+                            reduction = "full.umap",
+                            cells.highlight = list(
+                              "Ciliated Epithelial Cells" =
+                                rownames(subset(xenium.obj@meta.data, cell_type == "Ciliated Epithelial Cells"))),
+                            cols.highlight = "#8EE525",
+                            cols = "grey90",
+                            raster = TRUE) +
+  guides(colour = guide_legend(override.aes = list(size = 2))) +
+  theme(legend.title = element_blank(), legend.text = element_text(size = 7))
+
+# Create dataframe for ggplot2
+df <- cbind(xenium.obj@meta.data,
+            GetTissueCoordinates(xenium.obj, image = "fov"))
+
+# Highlight spatial location of ciliated epithelial cells only
+Spatial_ciliated <- ggplot(df, aes(x = x, y = y,
+                                   colour = ifelse(cell_type == "Ciliated Epithelial Cells",
+                                                   "Ciliated Epithelial Cells",
+                                                   "Other"))) +
+  geom_point(size = 0.3, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(values = c("Other" = "grey90", "Ciliated Epithelial Cells" = "black")) +
+  theme_void() +
+  theme(legend.title = element_blank())
+```
+
+### Plots {.tabset}
+
+#### Full dataset UMAP
+```{r, out.width="100%"}
+DimPlot_full
+```
+
+#### Ciliated Epithelial Cells UMAP
+```{r, out.width="100%"}
+DimPlot_ciliated
+```
+
+#### Ciliated Epithelial Cells Spatial plot
+```{r, out.width="100%"}
+Spatial_ciliated
+```
+
+## Label transfer prediction scores
+Label transfer prediction scores were examined to assess the confidence of the Ciliated Epithelial Cells annotations.
+```{r Prediction scores, out.width="100%", include=TRUE, warning=FALSE, message=FALSE}
+# Show spatial plot with binary label transfer prediction score thresholding
+# Create dataframe
+df$ciliated_epithelial_cells <- NA
+
+df$ciliated_epithelial_cells[df$cell_type == "Ciliated Epithelial Cells" & df$predicted.id_full.score >= 0.9] <- ">=0.9"
+
+df$ciliated_epithelial_cells[df$cell_type == "Ciliated Epithelial Cells" & df$predicted.id_full.score < 0.9] <- "<0.9"
+
+cilia_df <- subset(df, cell_type == "Ciliated Epithelial Cells")
+
+# Plot label transfer prediction score in ciliated epithelial population
+scores_plot <- ggplot(cilia_df,aes(x = x, y = y, colour = predicted.id_full.score)) +
+  geom_point(size = 0.4) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_colour_viridis_c(limits = c(0,1)) +
+  theme_void() +
+  ggtitle("Ciliated epithelial cells: Label transfer prediction score")
+
+# Violin plot of label transfer prediction scores
+violin_plot <- ggplot(cilia_df,  aes(x = "Ciliated Epithelial Cells", y = predicted.id_full.score)) +
+  geom_violin(fill = "#8EE525") + 
+  # geom_boxplot() +
+  theme_classic() +
+  xlab("") +
+  ylab("label prediction score") +
+  ggtitle("Label transfer prediction scores")
+
+# Entire tissue overlay
+df$highlight <- "Other"
+
+df$highlight[df$cell_type == "Ciliated Epithelial Cells" & df$predicted.id_full.score >= 0.9] <- "Ciliated >=0.9"
+
+df$highlight[df$cell_type == "Ciliated Epithelial Cells" & df$predicted.id_full.score < 0.9] <- "Ciliated <0.9"
+
+binary_plot <- ggplot() +
+  geom_point(data = subset(df, highlight == "Other"),
+             aes(x = x, y = y, color = "Other"),
+             size = 0.4) +
+  geom_point(data = subset(df, highlight == "Ciliated >=0.9"),
+             aes(x = x, y = y, color = "Ciliated >=0.9"),
+             size = 0.4) +
+  geom_point(data = subset(df, highlight == "Ciliated <0.9"),
+             aes(x = x, y = y, color = "Ciliated <0.9"),
+             size = 0.4) +
+  scale_color_manual(name = "Cell type",
+                     values = c("Other" = "grey90",
+                                "Ciliated >=0.9" = "darkgreen",
+                                "Ciliated <0.9" = "red")) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  ggtitle("Spatial distribution of ciliated epithelial cells by prediction score")
+```
+
+### Plots {.tabset}
+
+#### Label transfer prediction scores Ciliated
+```{r, out.width="100%"}
+scores_plot
+```
+
+#### Violin plot label transfer prediction scores
+```{r, out.width="100%"}
+violin_plot
+```
+
+#### Threshold plot
+```{r, out.width="100%"}
+binary_plot
+```
+
+## Subclusters
+Ciliated Epithelial Cells were subclustered to determine whether distinct populations could explain the observed separation between cells located within and outside the histologically normal fallopian tube region.
+```{r Subsclusters, out.width ="100%", warning = FALSE, message = FALSE}
+# Recompute UMAP on subset to identify subpopulations
+# Subset object
+cilia_obj <- subset(xenium.obj, subset = cell_type == "Ciliated Epithelial Cells")
+
+DefaultAssay(cilia_obj) <- "Xenium"
+
+cilia_obj <- cilia_obj %>%
+  NormalizeData() %>%
+  FindVariableFeatures() %>%
+  ScaleData() %>%
+  RunPCA(npcs = 20) %>%
+  FindNeighbors(dims = 1:15) %>%
+  FindClusters(resolution = 0.1) %>%
+  RunUMAP(dims = 1:15)
+
+# UMAP of identified clusters
+UMAP_subclusters <- DimPlot(cilia_obj,  group.by = "seurat_clusters",  label = TRUE) # two clusters are identified at res = 0.1
+
+# Extract coordinates and metadata
+df_cilia <- cbind(cilia_obj@meta.data, GetTissueCoordinates(cilia_obj, image = "fov"))
+
+# Plot spatial location of clusters
+spatial_subclusters <- ggplot(df_cilia, aes(x = x, y = y, colour = seurat_clusters)) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  theme_void() +
+  labs(colour = "Cluster")
+
+# Highlight cluster 0 only
+cluster0_plot <- ggplot(df_cilia,aes(x = x, y = y,  colour = seurat_clusters == "0")) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(
+    values = c("FALSE" = "grey90",
+               "TRUE" = "red"),
+    labels = c("Other cluster",
+               "Cluster 0")) +
+  theme_void() +
+  labs(colour = NULL)
+
+# Highlight cluster 1 only
+cluster1_plot <- ggplot(df_cilia,aes(x = x, y = y,  colour = seurat_clusters == "1")) +
+  geom_point(size = 0.4, stroke = 0) +
+  coord_equal() +
+  scale_y_reverse() +
+  scale_color_manual(values = c("FALSE" = "grey90",
+                                "TRUE" = "red"),
+                     labels = c("Other cluster",
+                                "Cluster 1")) +
+  theme_void() +
+  labs(colour = NULL)
+```
+
+### Plots {.tabset}
+
+#### UMAP subclusters
+```{r, out.width="100%"}
+UMAP_subclusters
+```
+
+#### Spatial location subclusters
+```{r, out.width="100%"}
+spatial_subclusters
+```
+
+#### Cluster 0
+```{r, out.width="100%"}
+cluster0_plot
+```
+
+#### Cluster 1
+```{r, out.width="100%"}
+cluster1_plot
+```
+
+### Markers
+Differential expression analysis was performed to identify markers distinguishing the identified ciliated epithelial subclusters.
+```{r Subsclusters markers, out.width="100%", include=TRUE, warning=FALSE, message=FALSE}
+# FindMarkers that distinguish identified clusters
+Idents(cilia_obj) <- "seurat_clusters"
+
+markers <- FindMarkers(cilia_obj,
+                       ident.1 = "1",
+                       ident.2 = "0",
+                       assay = "Xenium",
+                       slot = "data",
+                       test.use = "wilcox")
+
+top_cluster1_all <- markers %>%
+  tibble::rownames_to_column("gene") %>%
+  filter(avg_log2FC > 0, p_val_adj < 0.05) %>%
+  arrange(p_val_adj)
+
+top_cluster1 <- markers %>%
+  tibble::rownames_to_column("gene") %>%
+  filter(avg_log2FC > 0, p_val_adj < 0.05) %>%
+  arrange(p_val_adj) %>%
+  slice_head(n = 15)
+
+top_cluster0_all <- markers %>%
+  tibble::rownames_to_column("gene") %>%
+  filter(avg_log2FC < 0,
+         p_val_adj < 0.05) %>%
+  arrange(p_val_adj) 
+
+top_cluster0 <- markers %>%
+  tibble::rownames_to_column("gene") %>%
+  filter(avg_log2FC < 0,
+         p_val_adj < 0.05) %>%
+  arrange(p_val_adj) %>%
+  slice_head(n = 15)
+
+kable(top_cluster1[, c("gene", "avg_log2FC", "p_val_adj")],
+      caption = "Top markers enriched in Cluster 1")
+
+kable(top_cluster0[, c("gene", "avg_log2FC", "p_val_adj")],
+      caption = "Top markers enriched in Cluster 0")
+```
+
+### Cell type enrichment analysis
+To further characterise the identified ciliated epithelial subclusters, marker genes from each cluster were analysed using Enrichr against the CellMarker and PanglaoDB reference databases. These databases were used to determine whether either cluster was enriched for annotated ciliated epithelial cell signatures or alternative cell states.
+```{r Enrichr, out.width="100%", include=TRUE, warning=FALSE, message=FALSE}
+# Cluster specific markers for enrichr
+Idents(cilia_obj) <- "seurat_clusters"
+all_markers <- FindAllMarkers(
+  cilia_obj,
+  only.pos = TRUE,
+  assay = "Xenium",
+  slot = "data",
+  test.use = "wilcox")
+
+cluster1_markers_enrichr <- all_markers %>%
+  filter(cluster == "1", p_val_adj < 0.05) %>%
+  arrange(desc(avg_log2FC))
+
+cluster0_markers_enrichr <- all_markers %>%
+  filter(cluster == "0", p_val_adj < 0.05) %>%
+  arrange(desc(avg_log2FC))
+
+# load databases
+dbs <- c("CellMarker_Augmented_2021", "PanglaoDB_Augmented_2021")
+
+# Run enrichr on both databases
+enrich_cluster1 <- enrichr(cluster1_markers_enrichr$gene, dbs)
+enrich_cluster0 <- enrichr(cluster0_markers_enrichr$gene, dbs)
+
+cluster1_cellmarker <- enrich_cluster1$CellMarker_Augmented_2021 %>%
+  arrange(Adjusted.P.value) %>%
+  slice_head(n = 10)
+
+cluster1_panglao <- enrich_cluster1$PanglaoDB_Augmented_2021 %>%
+  arrange(Adjusted.P.value) %>%
+  slice_head(n = 10)
+
+cluster0_cellmarker <- enrich_cluster0$CellMarker_Augmented_2021 %>%
+  arrange(Adjusted.P.value) %>%
+  slice_head(n = 10)
+
+cluster0_panglao <- enrich_cluster0$PanglaoDB_Augmented_2021 %>%
+  arrange(Adjusted.P.value) %>%
+  slice_head(n = 10)
+```
+
+### Enrichr results {.tabset}
+
+#### Cluster 1 - CellMarker
+```{r}
+kable(head(cluster1_cellmarker, 10), caption = "Cluster 1 - CellMarker")
+```
+
+#### Cluster 1 - PanglaoDB
+
+```{r}
+kable(head(cluster1_panglao, 10), caption = "Cluster 1 - PanglaoDB")
+```
+
+#### Cluster 0 - CellMarker
+
+```{r}
+kable(head(cluster0_cellmarker, 10), caption = "Cluster 0 - CellMarker")
+```
+
+#### Cluster 0 - PanglaoDB
+
+```{r}
+kable(head(cluster0_panglao, 10), caption = "Cluster 0 - PanglaoDB")
+```
+
+## Assign Ciliated cell types
+Based on the spatial distribution, marker expression patterns and enrichment analyses, subcluster 0 was reannotated as Tumour Associated Ciliated Epithelial Cells.
+```{r assign , out.width="100%", include=TRUE, warning=FALSE, message=FALSE}
+# Assign refined annotation
+xenium.obj$cell_type_refined <- xenium.obj$cell_type
+
+# Get cells belonging to cluster 0
+cluster0_cells <- Cells(cilia_obj)[cilia_obj$seurat_clusters == "0"]
+
+# Replace annotation
+xenium.obj$cell_type_refined[cluster0_cells] <- "Tumour Associated Ciliated Epithelial Cells"
+
+# Show refined cell types
+table(xenium.obj$cell_type_refined)
+```
+
+## Fallopian Tube Epithelium refinement
+### Secretory Epithelial Cells annotation
+Secretory Epithelial Cells were identified within the Fallopian Tube Epithelium population based on detectable PAX8 expression and annotated as a separate cell type. PAX8 is a recognised marker of secretory fallopian tube epithelial cells.
+```{r FT, out.width="100%", include=TRUE, warning=FALSE, message=FALSE}
+# Subset Fallopian Tube Epithelium
+FT_obj <- subset(xenium.obj, subset = cell_type == "Fallopian Tube Epithelium")
+
+# Retrieve normalised PAX8 expression levels
+expr <- FetchData(FT_obj, vars = "PAX8")
+
+# Default label
+FT_obj$FT_subtype <- "Fallopian Tube Epithelium"
+
+# Secretory cells
+FT_obj$FT_subtype[expr$PAX8 > 0] <- "Secretory Epithelial Cells"
+
+# Summary
+table(FT_obj$FT_subtype)
+
+prop.table(table(FT_obj$FT_subtype)) * 100
+
+# Annotate Secretory Epithelial Cells in main object
+# Get Secretory Epithelial Cells
+secretory_cells <- Cells(FT_obj)[FT_obj$FT_subtype == "Secretory Epithelial Cells"]
+
+# Replace annotation
+xenium.obj$cell_type_refined[secretory_cells] <- "Secretory Epithelial Cells"
+
+# Show refined cell types
+table(xenium.obj$cell_type_refined)
+
+# Plot refined cell annotation in normal region
+# Subset normal fallopian tube region
+box <- list(xmin = 7800, xmax = 10100, ymin = 3750, ymax = 6050)
+
+coords <- GetTissueCoordinates(xenium.obj, image = "fov")
+
+cells_keep <- colnames(xenium.obj)[coords$x > box$xmin &
+                                     coords$x < box$xmax &
+                                     coords$y > box$ymin &
+                                     coords$y < box$ymax]
+
+FT_obj_normal <- subset(FT_obj, cells = cells_keep)
+
+# Plot refined cell annotation in normal region
+plot_ft_normal <- cbind(FT_obj_normal@meta.data, GetTissueCoordinates(FT_obj_normal, image = "fov"))
+
+ft_cols <- c("Secretory Epithelial Cells" = "#F28E2B",
+             "Fallopian Tube Epithelium" = "#59A14F")
+
+ggplot(plot_ft_normal,
+       aes(x = x,  y = y,  col = FT_subtype)) +
+  geom_point(size = 1/3, stroke = 0) +
+  coord_equal() +
+  theme_void() +
+  scale_y_reverse() +
+  scale_color_manual(values = ft_cols) +
+  guides(color = guide_legend(
+    override.aes = list(size = 4),
+    ncol = 1)) +
+  theme(legend.position = "right",
+        legend.text = element_text(size = 7),
+        legend.title = element_blank(),
+        legend.key.height = unit(2, "mm"),
+        legend.key.width = unit(1, "mm"))
+```
+
+## Export
+### Standardise nomenclature
+```{r Spelling, out.width="100%", warning=FALSE, message=FALSE}
+# British spelling
+xenium.obj$cell_type_refined <- recode(xenium.obj$cell_type_refined,
+                                       "Tumor Cells" = "Tumour Cells",
+                                       "Proliferative Tumor Cells" = "Proliferative Tumour Cells",
+                                       "VEGFA+ Tumor Cells" = "VEGFA+ Tumour Cells",
+                                       "Inflammatory Tumor Cells" = "Inflammatory Tumour Cells",
+                                       "MT-High, Jun+/Fos+ Tumor Cells" = "MT-High, Jun+/Fos+ Tumour Cells",
+                                       "Tumor Associated Fibroblasts" = "Tumour Associated Fibroblasts")
+```
+
+### Master export
+```{r Export, out.width="100%", warning=FALSE, message=FALSE}
+cell_type_refined <- data.frame(cell_id = colnames(xenium.obj),
+                                group = xenium.obj$cell_type_refined)
+
+head(cell_type_refined)
+
+write.csv(cell_type_refined, "Data/cell_type_refined.csv", row.names = FALSE)
+```
+
+## Visualisation
+The final refined cell type annotations are visualised spatially below.
+```{r Plot annotated cells, out.width="100%", warning=FALSE, message=FALSE}
+# View final annotated cells using ggplot2
+plot_annotated <- cbind(xenium.obj@meta.data, GetTissueCoordinates(xenium.obj, image = "fov"))
+
+# Set manual colours from palette
+manual_col <- c("Proliferative Tumour Cells" = "#F1CE63",
+                "MT-High, Jun+/Fos+ Tumour Cells" = "#86BCB6",
+                "VEGFA+ Tumour Cells" = "#FABFD2",
+                "Tumour Cells" = "#D37295",
+                "Fallopian Tube Epithelium" = "#59A14F",
+                "Macrophages" = "#8CD17D",
+                "Tumour Associated Ciliated Epithelial Cells" = "#A0CBE8",
+                "Ciliated Epithelial Cells" = "#4E79A7",
+                "T & NK Cells" = "#79706E",
+                "Tumour Associated Fibroblasts" = "#BAB0AC",
+                "Malignant Cells Lining Cyst" = "#B6992D",
+                "Endothelial Cells" = "#D7B5A6",
+                "Stromal Associated Fibroblasts" = "#FF9D9A",
+                "Pericytes" = "#499894",
+                "Smooth Muscle Cells" = "#E15759",
+                "Inflammatory Tumour Cells" = "#B07AA1",
+                "Granulosa Cells" = "#FFBE7D",
+                "Secretory Epithelial Cells" = "#F28E2B")
+
+# Add legend order
+legend_order <- c("Tumour Cells", "Inflammatory Tumour Cells", "Proliferative Tumour Cells", "VEGFA+ Tumour Cells", "MT-High, Jun+/Fos+ Tumour Cells", "Malignant Cells Lining Cyst", "Tumour Associated Fibroblasts", "Tumour Associated Ciliated Epithelial Cells", "Fallopian Tube Epithelium", "Secretory Epithelial Cells", "Ciliated Epithelial Cells", "Granulosa Cells","Endothelial Cells", "Pericytes", "Stromal Associated Fibroblasts", "Smooth Muscle Cells", "Macrophages", "T & NK Cells")
+
+ggplot(plot_annotated, aes(x = x, y = y, col = cell_type_refined)) +
+  geom_point(size = 1/3, stroke = 0) +
+  coord_equal() +
+  theme_void() +
+  scale_y_reverse() + # flip y axis
+  scale_color_manual(values = manual_col, breaks = legend_order) +
+  guides(color = guide_legend(
+    override.aes = list(size = 4),
+    ncol = 1)) +
+  theme(legend.position = "right",
+        legend.text  = element_text(size = 7),  
+        legend.title = element_blank(),   
+        legend.key.height = unit(2, "mm"),     
+        legend.key.width  = unit(1, "mm"))  
+
+# Global limits for entire dataset
+xlim_all <- range(plot_annotated$x, na.rm = TRUE)
+ylim_all <- range(plot_annotated$y, na.rm = TRUE)
+
+plot_cell_type <- function(ct) {
+  ggplot(subset(plot_annotated, cell_type_refined == ct),
+         aes(x = x, y = y)) +
+    geom_point(color = manual_col[ct],
+               size = 1/3,
+               stroke = 0) +
+    coord_equal(xlim = xlim_all,
+                ylim = ylim_all) +
+    theme_void() +
+    scale_y_reverse() +
+    ggtitle(ct) +
+    theme(plot.title = element_text(size = 10,
+                                    hjust = 0.5),
+          legend.position = "none"
+    )
+}
+
+cell_types <- unique(plot_annotated$cell_type_refined)
+plots <- lapply(cell_types, plot_cell_type)
+names(plots) <- cell_types
+```
+
+### Highlight cell types separately {.tabset}
+```{r, results = "asis", echo = FALSE}
+for (ct in names(plots)) {
+  cat("#### ", ct, "\n\n", sep = "")
+  print(plots[[ct]])
+  cat("\n\n")
+}
+```
+
+## Summary
+The initial cell type annotations generated using the 10x Genomics label transfer workflow were refined.
+
+Ciliated Epithelial Cells segregated into two distinct subpopulations. One population localised predominantly within the histologically normal fallopian tube epithelium and retained a canonical ciliated epithelial transcriptional profile.. The second population was enriched outside the normal fallopian tube region and was therefore reannotated as Tumour Associated Ciliated Epithelial Cells.
+
+In addition, Secretory Epithelial Cells were identified within the Fallopian Tube Epithelium population using PAX8 expression and annotated as a separate cell type.
+
+The refined annotations generated here were used in all downstream analyses.

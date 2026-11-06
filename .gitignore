@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.positai
+
+# Large intermediate data objects
+Data/Xenium_ovarian.rds
+Data/xenium_obj_annotated_scores.rds
