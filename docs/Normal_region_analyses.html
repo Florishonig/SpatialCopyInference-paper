@@ -1740,9 +1740,9 @@ xenium.sub &lt;- subset(xenium.obj, cells = cells_keep)</code></pre>
 # Remove full Xenium object to reduce memory usage
 rm(xenium.obj)
 gc()</code></pre>
-<pre><code>##             used   (Mb) gc trigger    (Mb)   max used   (Mb)
-## Ncells   7512952  401.3   11828481   631.8   11828481  631.8
-## Vcells 620621396 4735.0 1333558035 10174.3 1111208419 8477.9</code></pre>
+<pre><code>##             used   (Mb) gc trigger   (Mb)  max used   (Mb)
+## Ncells   6030426  322.1   10687364  570.8  10687364  570.8
+## Vcells 651327094 4969.3 1309160410 9988.2 934109410 7126.7</code></pre>
 </div>
 <div id="plot-settings" class="section level2">
 <h2>Plot settings</h2>
@@ -2098,14 +2098,19 @@ aggregate(
 ## 2           Other   -0.1677064</code></pre>
 <pre class="r"><code># Statistical test
 wt_tp53_c3 &lt;- wilcox.test(targets_p531 ~ cluster3_status,
-  data = Module_TP53_C3)
+  data = Module_TP53_C3, conf.int = TRUE)
 wt_tp53_c3</code></pre>
 <pre><code>## 
 ##  Wilcoxon rank sum test with continuity correction
 ## 
 ## data:  targets_p531 by cluster3_status
 ## W = 9960472, p-value &lt; 2.2e-16
-## alternative hypothesis: true location shift is not equal to 0</code></pre>
+## alternative hypothesis: true location shift is not equal to 0
+## 95 percent confidence interval:
+##  -0.2161632 -0.1708683
+## sample estimates:
+## difference in location 
+##             -0.1940546</code></pre>
 <pre class="r"><code># Figure 4C: TP53 target gene module score comparing Cluster 3 and other cells
 ggplot(
   Module_TP53_C3,
@@ -2676,7 +2681,7 @@ results</code></pre>
 <p>Here, co-localisation of SCNAs are investigated within the normal
 fallopian tube region, with a particular focus on chromosome arms 3q and
 8q.</p>
-<pre class="r"><code># Load chromosome arm log ratios
+<pre class="r"><code># Load chromosome arm log ratios from SpatialCopyInference workflow
 arm_ratios &lt;- readRDS(&quot;Data/arm_ratios_ovarian.rds&quot;)
 
 # Convert chromosome arm matrix to dataframe

@@ -364,7 +364,7 @@ aggregate(
 
 # Statistical test
 wt_tp53_c3 <- wilcox.test(targets_p531 ~ cluster3_status,
-  data = Module_TP53_C3)
+  data = Module_TP53_C3, conf.int = TRUE)
 wt_tp53_c3
 
 # Figure 4C: TP53 target gene module score comparing Cluster 3 and other cells
